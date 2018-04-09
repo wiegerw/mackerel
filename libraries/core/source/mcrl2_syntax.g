@@ -77,6 +77,7 @@ VarsDeclList: VarsDecl ( ',' VarsDecl )* ;                       // Individually
 
 DataExpr
   : Id                                                           // Identifier
+  | Id '(' AssignmentList ')'                                    // Structured sort update
   | Number                                                       // Number
   | 'true'                                   $left        20     // True
   | 'false'                                  $left        20     // False
