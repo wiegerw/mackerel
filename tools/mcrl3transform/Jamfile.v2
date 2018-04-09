@@ -1,0 +1,17 @@
+project mcrl3transform
+   : requirements
+       <library>/aterm//aterm
+       <library>/core//core
+       <library>/data//data
+       <library>/lps//lps
+       <library>/process//process
+       <library>/utilities//utilities
+       <library>/dparser//dparser
+   ;
+
+exe mcrl3transform
+  :
+    mcrl3transform.cpp
+  ;
+
+install dist : mcrl3transform : <variant>debug:<location>../../install_debug/bin <variant>release:<location>../../install/bin ;
