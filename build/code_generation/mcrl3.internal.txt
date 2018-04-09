@@ -52,7 +52,7 @@
 //data expression
 <DataExpr>     ::= <DataVarId>
                  | <OpId>
-                 | VariableUpdate(<String>, <SortExpr>, <DataVarIdInit>+)
+                 | VariableAssignment(<String>, <SortExpr>, <DataVarIdInit>+)
                  | DataAppl(<DataExpr>, <DataExpr>+)
                  | Binder(<BindingOperator>, <DataVarId>+, <DataExpr>)
                  | Whr(<DataExpr>, <WhrDecl>+)

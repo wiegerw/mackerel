@@ -109,6 +109,12 @@ inline bool is_untyped_identifier(const atermpp::aterm_appl& x)
   return x.function() == core::detail::function_symbols::UntypedIdentifier;
 }
 
+/// \brief Returns true if the term t is a variable assignment
+inline bool is_variable_assignment(const atermpp::aterm_appl& x)
+{
+  return x.function() == core::detail::function_symbols::VariableAssignment;
+}
+
 class application; // prototype
 
 /// \brief data expression.

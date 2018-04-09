@@ -74,6 +74,7 @@ const atermpp::aterm_appl& default_value_CommExpr();
 const atermpp::aterm_appl& default_value_StateNot();
 const atermpp::aterm_appl& default_value_UntypedSetBagComp();
 const atermpp::aterm_appl& default_value_SortFSet();
+const atermpp::aterm_appl& default_value_VariableAssignment();
 const atermpp::aterm_appl& default_value_StateImp();
 const atermpp::aterm_appl& default_value_PBESExists();
 const atermpp::aterm_appl& default_value_PBESImp();
@@ -126,7 +127,6 @@ const atermpp::aterm_appl& default_value_Block();
 const atermpp::aterm_appl& default_value_Rename();
 const atermpp::aterm_appl& default_value_Exists();
 const atermpp::aterm_appl& default_value_Sync();
-const atermpp::aterm_appl& default_value_VariableUpdate();
 const atermpp::aterm_appl& default_value_ActExists();
 const atermpp::aterm_appl& default_value_ProcSpec();
 const atermpp::aterm_appl& default_value_UntypedSortsPossible();
@@ -300,6 +300,14 @@ inline
 const atermpp::aterm_appl& default_value_SortFSet()
 {
   static const atermpp::aterm_appl t = atermpp::aterm_appl(function_symbol_SortFSet());
+  return t;
+}
+
+// VariableAssignment
+inline
+const atermpp::aterm_appl& default_value_VariableAssignment()
+{
+  static const atermpp::aterm_appl t = atermpp::aterm_appl(function_symbol_VariableAssignment(), default_value_String(), default_value_SortExpr(), default_value_List(default_value_DataVarIdInit()));
   return t;
 }
 
@@ -716,14 +724,6 @@ inline
 const atermpp::aterm_appl& default_value_Sync()
 {
   static const atermpp::aterm_appl t = atermpp::aterm_appl(function_symbol_Sync(), default_value_ProcExpr(), default_value_ProcExpr());
-  return t;
-}
-
-// VariableUpdate
-inline
-const atermpp::aterm_appl& default_value_VariableUpdate()
-{
-  static const atermpp::aterm_appl t = atermpp::aterm_appl(function_symbol_VariableUpdate(), default_value_String(), default_value_SortExpr(), default_value_List(default_value_DataVarIdInit()));
   return t;
 }
 
@@ -1487,6 +1487,7 @@ static const atermpp::aterm_appl BooleanOr;
   static const atermpp::aterm_appl StateNot;
   static const atermpp::aterm_appl UntypedSetBagComp;
   static const atermpp::aterm_appl SortFSet;
+  static const atermpp::aterm_appl VariableAssignment;
   static const atermpp::aterm_appl StateImp;
   static const atermpp::aterm_appl PBESExists;
   static const atermpp::aterm_appl PBESImp;
@@ -1539,7 +1540,6 @@ static const atermpp::aterm_appl BooleanOr;
   static const atermpp::aterm_appl Rename;
   static const atermpp::aterm_appl Exists;
   static const atermpp::aterm_appl Sync;
-  static const atermpp::aterm_appl VariableUpdate;
   static const atermpp::aterm_appl ActExists;
   static const atermpp::aterm_appl ProcSpec;
   static const atermpp::aterm_appl UntypedSortsPossible;

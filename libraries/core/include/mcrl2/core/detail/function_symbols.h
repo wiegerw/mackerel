@@ -1213,12 +1213,12 @@ const atermpp::function_symbol& function_symbol_UntypedSortsPossible()
   return function_symbol_UntypedSortsPossible;
 }
 
-// VariableUpdate
+// VariableAssignment
 inline
-const atermpp::function_symbol& function_symbol_VariableUpdate()
+const atermpp::function_symbol& function_symbol_VariableAssignment()
 {
-  static const atermpp::function_symbol function_symbol_VariableUpdate = atermpp::function_symbol("VariableUpdate", 3);
-  return function_symbol_VariableUpdate;
+  static const atermpp::function_symbol function_symbol_VariableAssignment = atermpp::function_symbol("VariableAssignment", 3);
+  return function_symbol_VariableAssignment;
 }
 
 // Whr
@@ -1247,6 +1247,7 @@ static const atermpp::function_symbol BooleanOr;
   static const atermpp::function_symbol StateNot;
   static const atermpp::function_symbol UntypedSetBagComp;
   static const atermpp::function_symbol SortFSet;
+  static const atermpp::function_symbol VariableAssignment;
   static const atermpp::function_symbol StateImp;
   static const atermpp::function_symbol PBESExists;
   static const atermpp::function_symbol PBESImp;
@@ -1299,7 +1300,6 @@ static const atermpp::function_symbol BooleanOr;
   static const atermpp::function_symbol Rename;
   static const atermpp::function_symbol Exists;
   static const atermpp::function_symbol Sync;
-  static const atermpp::function_symbol VariableUpdate;
   static const atermpp::function_symbol ActExists;
   static const atermpp::function_symbol ProcSpec;
   static const atermpp::function_symbol UntypedSortsPossible;

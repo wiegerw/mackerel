@@ -28,6 +28,7 @@
 #include "mcrl2/data/untyped_set_or_bag_comprehension.h"
 #include "mcrl2/data/untyped_sort.h"
 #include "mcrl2/data/untyped_sort_variable.h"
+#include "mcrl2/data/variable_assignment.h"
 #include "mcrl2/data/where_clause.h"
 
 namespace mcrl2
@@ -80,6 +81,7 @@ struct add_traverser_sort_expressions: public Traverser<Derived>
   {
     static_cast<Derived&>(*this).enter(x);
     static_cast<Derived&>(*this).apply(x.sort());
+    static_cast<Derived&>(*this).apply(x.assignments());
     static_cast<Derived&>(*this).leave(x);
   }
 
@@ -408,7 +410,7 @@ struct add_traverser_data_expressions: public Traverser<Derived>
   void apply(const data::variable_assignment& x)
   {
     static_cast<Derived&>(*this).enter(x);
-    // skip
+    static_cast<Derived&>(*this).apply(x.assignments());
     static_cast<Derived&>(*this).leave(x);
   }
 
@@ -624,7 +626,7 @@ struct add_traverser_variables: public Traverser<Derived>
   void apply(const data::variable_assignment& x)
   {
     static_cast<Derived&>(*this).enter(x);
-    // skip
+    static_cast<Derived&>(*this).apply(x.assignments());
     static_cast<Derived&>(*this).leave(x);
   }
 
@@ -852,6 +854,7 @@ struct add_traverser_identifier_strings: public Traverser<Derived>
     static_cast<Derived&>(*this).enter(x);
     static_cast<Derived&>(*this).apply(x.name());
     static_cast<Derived&>(*this).apply(x.sort());
+    static_cast<Derived&>(*this).apply(x.assignments());
     static_cast<Derived&>(*this).leave(x);
   }
 

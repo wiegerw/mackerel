@@ -39,6 +39,7 @@
 #include "mcrl2/data/untyped_set_or_bag_comprehension.h"
 #include "mcrl2/data/untyped_sort.h"
 #include "mcrl2/data/untyped_sort_variable.h"
+#include "mcrl2/data/variable_assignment.h"
 #include "mcrl2/data/where_clause.h"
 #include <functional>
 
@@ -102,7 +103,7 @@ struct add_sort_expressions: public Builder<Derived>
   data::variable_assignment apply(const data::variable_assignment& x)
   {
     static_cast<Derived&>(*this).enter(x);
-    data::variable_assignment result = data::variable_assignment(x.name(), static_cast<Derived&>(*this).apply(x.sort()), x.assignments());
+    data::variable_assignment result = data::variable_assignment(x.name(), static_cast<Derived&>(*this).apply(x.sort()), static_cast<Derived&>(*this).apply(x.assignments()));
     static_cast<Derived&>(*this).leave(x);
     return result;
   }
@@ -462,9 +463,9 @@ struct add_data_expressions: public Builder<Derived>
   data::variable_assignment apply(const data::variable_assignment& x)
   {
     static_cast<Derived&>(*this).enter(x);
-    // skip
+    data::variable_assignment result = data::variable_assignment(x.name(), x.sort(), static_cast<Derived&>(*this).apply(x.assignments()));
     static_cast<Derived&>(*this).leave(x);
-    return x;
+    return result;
   }
 
   data::untyped_identifier apply(const data::untyped_identifier& x)
@@ -705,9 +706,9 @@ struct add_variables: public Builder<Derived>
   data::variable_assignment apply(const data::variable_assignment& x)
   {
     static_cast<Derived&>(*this).enter(x);
-    // skip
+    data::variable_assignment result = data::variable_assignment(x.name(), x.sort(), static_cast<Derived&>(*this).apply(x.assignments()));
     static_cast<Derived&>(*this).leave(x);
-    return x;
+    return result;
   }
 
   data::untyped_identifier apply(const data::untyped_identifier& x)
