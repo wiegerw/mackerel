@@ -14,4 +14,4 @@ exe mcrl32lps
     mcrl32lps.cpp
   ;
 
-install dist : mcrl32lps : <variant>debug:<location>../../../install_debug/bin <variant>release:<location>../../../install/bin ;
+install dist : mcrl32lps : <variant>debug:<location>../../install_debug/bin <variant>release:<location>../../install/bin ;
