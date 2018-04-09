@@ -1,0 +1,17 @@
+project mcrl32lps
+   : requirements
+       <library>/aterm//aterm
+       <library>/core//core
+       <library>/data//data
+       <library>/lps//lps
+       <library>/process//process
+       <library>/utilities//utilities
+       <library>/dparser//dparser
+   ;
+
+exe mcrl32lps
+  :
+    mcrl32lps.cpp
+  ;
+
+install dist : mcrl32lps : <variant>debug:<location>../../../install_debug/bin <variant>release:<location>../../../install/bin ;
