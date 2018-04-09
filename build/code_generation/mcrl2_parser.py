@@ -6,6 +6,7 @@
 
 import re
 import string
+import sys
 import tpg
 from types import *
 
