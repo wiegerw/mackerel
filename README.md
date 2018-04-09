@@ -1,4 +1,4 @@
-# mcrl3
+# mackerel
 
 This module contains some extensions to the [mCRL2](http://mcrl2.org) toolset.
 
