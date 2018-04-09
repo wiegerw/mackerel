@@ -102,6 +102,7 @@ const atermpp::aterm_appl& default_value_SortList();
 const atermpp::aterm_appl& default_value_Sum();
 const atermpp::aterm_appl& default_value_DataVarId();
 const atermpp::aterm_appl& default_value_ProcVarId();
+const atermpp::aterm_appl& default_value_UntypedVariableAssignment();
 const atermpp::aterm_appl& default_value_ProcessInit();
 const atermpp::aterm_appl& default_value_UntypedIdentifier();
 const atermpp::aterm_appl& default_value_BooleanFalse();
@@ -524,6 +525,14 @@ inline
 const atermpp::aterm_appl& default_value_ProcVarId()
 {
   static const atermpp::aterm_appl t = atermpp::aterm_appl(function_symbol_ProcVarId(), default_value_String(), default_value_List(), default_value_Number());
+  return t;
+}
+
+// UntypedVariableAssignment
+inline
+const atermpp::aterm_appl& default_value_UntypedVariableAssignment()
+{
+  static const atermpp::aterm_appl t = atermpp::aterm_appl(function_symbol_UntypedVariableAssignment(), default_value_String(), default_value_List(default_value_UntypedIdentifierAssignment()));
   return t;
 }
 
@@ -1515,6 +1524,7 @@ static const atermpp::aterm_appl BooleanOr;
   static const atermpp::aterm_appl Sum;
   static const atermpp::aterm_appl DataVarId;
   static const atermpp::aterm_appl ProcVarId;
+  static const atermpp::aterm_appl UntypedVariableAssignment;
   static const atermpp::aterm_appl ProcessInit;
   static const atermpp::aterm_appl UntypedIdentifier;
   static const atermpp::aterm_appl BooleanFalse;

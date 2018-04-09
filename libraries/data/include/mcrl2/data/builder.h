@@ -39,6 +39,7 @@
 #include "mcrl2/data/untyped_set_or_bag_comprehension.h"
 #include "mcrl2/data/untyped_sort.h"
 #include "mcrl2/data/untyped_sort_variable.h"
+#include "mcrl2/data/untyped_variable_assignment.h"
 #include "mcrl2/data/variable_assignment.h"
 #include "mcrl2/data/where_clause.h"
 #include <functional>
@@ -114,6 +115,14 @@ struct add_sort_expressions: public Builder<Derived>
     // skip
     static_cast<Derived&>(*this).leave(x);
     return x;
+  }
+
+  data::untyped_variable_assignment apply(const data::untyped_variable_assignment& x)
+  {
+    static_cast<Derived&>(*this).enter(x);
+    data::untyped_variable_assignment result = data::untyped_variable_assignment(x.name(), static_cast<Derived&>(*this).apply(x.assignments()));
+    static_cast<Derived&>(*this).leave(x);
+    return result;
   }
 
   data::assignment apply(const data::assignment& x)
@@ -308,6 +317,10 @@ struct add_sort_expressions: public Builder<Derived>
     {
       result = static_cast<Derived&>(*this).apply(atermpp::down_cast<data::untyped_identifier>(x));
     }
+    else if (data::is_untyped_variable_assignment(x))
+    {
+      result = static_cast<Derived&>(*this).apply(atermpp::down_cast<data::untyped_variable_assignment>(x));
+    }
     static_cast<Derived&>(*this).leave(x);
     return result;
   }
@@ -476,6 +489,14 @@ struct add_data_expressions: public Builder<Derived>
     return x;
   }
 
+  data::untyped_variable_assignment apply(const data::untyped_variable_assignment& x)
+  {
+    static_cast<Derived&>(*this).enter(x);
+    data::untyped_variable_assignment result = data::untyped_variable_assignment(x.name(), static_cast<Derived&>(*this).apply(x.assignments()));
+    static_cast<Derived&>(*this).leave(x);
+    return result;
+  }
+
   data::assignment apply(const data::assignment& x)
   {
     static_cast<Derived&>(*this).enter(x);
@@ -587,6 +608,10 @@ struct add_data_expressions: public Builder<Derived>
     else if (data::is_untyped_identifier(x))
     {
       result = static_cast<Derived&>(*this).apply(atermpp::down_cast<data::untyped_identifier>(x));
+    }
+    else if (data::is_untyped_variable_assignment(x))
+    {
+      result = static_cast<Derived&>(*this).apply(atermpp::down_cast<data::untyped_variable_assignment>(x));
     }
     static_cast<Derived&>(*this).leave(x);
     return result;
@@ -719,6 +744,14 @@ struct add_variables: public Builder<Derived>
     return x;
   }
 
+  data::untyped_variable_assignment apply(const data::untyped_variable_assignment& x)
+  {
+    static_cast<Derived&>(*this).enter(x);
+    data::untyped_variable_assignment result = data::untyped_variable_assignment(x.name(), static_cast<Derived&>(*this).apply(x.assignments()));
+    static_cast<Derived&>(*this).leave(x);
+    return result;
+  }
+
   data::assignment apply(const data::assignment& x)
   {
     static_cast<Derived&>(*this).enter(x);
@@ -830,6 +863,10 @@ struct add_variables: public Builder<Derived>
     else if (data::is_untyped_identifier(x))
     {
       result = static_cast<Derived&>(*this).apply(atermpp::down_cast<data::untyped_identifier>(x));
+    }
+    else if (data::is_untyped_variable_assignment(x))
+    {
+      result = static_cast<Derived&>(*this).apply(atermpp::down_cast<data::untyped_variable_assignment>(x));
     }
     static_cast<Derived&>(*this).leave(x);
     return result;

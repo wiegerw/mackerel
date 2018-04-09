@@ -28,6 +28,7 @@
 #include "mcrl2/data/untyped_set_or_bag_comprehension.h"
 #include "mcrl2/data/untyped_sort.h"
 #include "mcrl2/data/untyped_sort_variable.h"
+#include "mcrl2/data/untyped_variable_assignment.h"
 #include "mcrl2/data/variable_assignment.h"
 #include "mcrl2/data/where_clause.h"
 
@@ -89,6 +90,13 @@ struct add_traverser_sort_expressions: public Traverser<Derived>
   {
     static_cast<Derived&>(*this).enter(x);
     // skip
+    static_cast<Derived&>(*this).leave(x);
+  }
+
+  void apply(const data::untyped_variable_assignment& x)
+  {
+    static_cast<Derived&>(*this).enter(x);
+    static_cast<Derived&>(*this).apply(x.assignments());
     static_cast<Derived&>(*this).leave(x);
   }
 
@@ -274,6 +282,10 @@ struct add_traverser_sort_expressions: public Traverser<Derived>
     {
       static_cast<Derived&>(*this).apply(atermpp::down_cast<data::untyped_identifier>(x));
     }
+    else if (data::is_untyped_variable_assignment(x))
+    {
+      static_cast<Derived&>(*this).apply(atermpp::down_cast<data::untyped_variable_assignment>(x));
+    }
     static_cast<Derived&>(*this).leave(x);
   }
 
@@ -421,6 +433,13 @@ struct add_traverser_data_expressions: public Traverser<Derived>
     static_cast<Derived&>(*this).leave(x);
   }
 
+  void apply(const data::untyped_variable_assignment& x)
+  {
+    static_cast<Derived&>(*this).enter(x);
+    static_cast<Derived&>(*this).apply(x.assignments());
+    static_cast<Derived&>(*this).leave(x);
+  }
+
   void apply(const data::assignment& x)
   {
     static_cast<Derived&>(*this).enter(x);
@@ -523,6 +542,10 @@ struct add_traverser_data_expressions: public Traverser<Derived>
     else if (data::is_untyped_identifier(x))
     {
       static_cast<Derived&>(*this).apply(atermpp::down_cast<data::untyped_identifier>(x));
+    }
+    else if (data::is_untyped_variable_assignment(x))
+    {
+      static_cast<Derived&>(*this).apply(atermpp::down_cast<data::untyped_variable_assignment>(x));
     }
     static_cast<Derived&>(*this).leave(x);
   }
@@ -637,6 +660,13 @@ struct add_traverser_variables: public Traverser<Derived>
     static_cast<Derived&>(*this).leave(x);
   }
 
+  void apply(const data::untyped_variable_assignment& x)
+  {
+    static_cast<Derived&>(*this).enter(x);
+    static_cast<Derived&>(*this).apply(x.assignments());
+    static_cast<Derived&>(*this).leave(x);
+  }
+
   void apply(const data::assignment& x)
   {
     static_cast<Derived&>(*this).enter(x);
@@ -747,6 +777,10 @@ struct add_traverser_variables: public Traverser<Derived>
     else if (data::is_untyped_identifier(x))
     {
       static_cast<Derived&>(*this).apply(atermpp::down_cast<data::untyped_identifier>(x));
+    }
+    else if (data::is_untyped_variable_assignment(x))
+    {
+      static_cast<Derived&>(*this).apply(atermpp::down_cast<data::untyped_variable_assignment>(x));
     }
     static_cast<Derived&>(*this).leave(x);
   }
@@ -862,6 +896,14 @@ struct add_traverser_identifier_strings: public Traverser<Derived>
   {
     static_cast<Derived&>(*this).enter(x);
     static_cast<Derived&>(*this).apply(x.name());
+    static_cast<Derived&>(*this).leave(x);
+  }
+
+  void apply(const data::untyped_variable_assignment& x)
+  {
+    static_cast<Derived&>(*this).enter(x);
+    static_cast<Derived&>(*this).apply(x.name());
+    static_cast<Derived&>(*this).apply(x.assignments());
     static_cast<Derived&>(*this).leave(x);
   }
 
@@ -1052,6 +1094,10 @@ struct add_traverser_identifier_strings: public Traverser<Derived>
     else if (data::is_untyped_identifier(x))
     {
       static_cast<Derived&>(*this).apply(atermpp::down_cast<data::untyped_identifier>(x));
+    }
+    else if (data::is_untyped_variable_assignment(x))
+    {
+      static_cast<Derived&>(*this).apply(atermpp::down_cast<data::untyped_variable_assignment>(x));
     }
     static_cast<Derived&>(*this).leave(x);
   }

@@ -57,6 +57,7 @@
                  | Binder(<BindingOperator>, <DataVarId>+, <DataExpr>)
                  | Whr(<DataExpr>, <WhrDecl>+)
                  | UntypedIdentifier(<String>)
+                 | UntypedVariableAssignment(<String>, <UntypedIdentifierAssignment>+)
 
 //data variable identifier
 <DataVarId>    ::= DataVarId(<String>, <SortExpr>, <Number>)

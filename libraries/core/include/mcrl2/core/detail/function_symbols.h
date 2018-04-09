@@ -1213,6 +1213,14 @@ const atermpp::function_symbol& function_symbol_UntypedSortsPossible()
   return function_symbol_UntypedSortsPossible;
 }
 
+// UntypedVariableAssignment
+inline
+const atermpp::function_symbol& function_symbol_UntypedVariableAssignment()
+{
+  static const atermpp::function_symbol function_symbol_UntypedVariableAssignment = atermpp::function_symbol("UntypedVariableAssignment", 2);
+  return function_symbol_UntypedVariableAssignment;
+}
+
 // VariableAssignment
 inline
 const atermpp::function_symbol& function_symbol_VariableAssignment()
@@ -1275,6 +1283,7 @@ static const atermpp::function_symbol BooleanOr;
   static const atermpp::function_symbol Sum;
   static const atermpp::function_symbol DataVarId;
   static const atermpp::function_symbol ProcVarId;
+  static const atermpp::function_symbol UntypedVariableAssignment;
   static const atermpp::function_symbol ProcessInit;
   static const atermpp::function_symbol UntypedIdentifier;
   static const atermpp::function_symbol BooleanFalse;

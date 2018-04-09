@@ -23,6 +23,7 @@
 #include "mcrl2/data/standard_utility.h"
 #include "mcrl2/data/typecheck.h"
 #include "mcrl2/data/undefined.h"
+#include "mcrl2/data/variable_assignment.h"
 #include "mcrl2/utilities/exception.h"
 #include "mcrl2/utilities/logger.h"
 #include "mcrl2/utilities/text_utility.h"
@@ -307,6 +308,7 @@ struct data_expression_actions: public sort_expression_actions
     else if ((node.child_count() == 3) && (symbol_name(node.child(0)) == "DataExpr") && (node.child(1).string() == "*") && (symbol_name(node.child(2)) == "DataExpr")) { return application(untyped_identifier(parse_Id(node.child(1))), parse_DataExpr(node.child(0)), parse_DataExpr(node.child(2))); }
     else if ((node.child_count() == 3) && (symbol_name(node.child(0)) == "DataExpr") && (node.child(1).string() == ".") && (symbol_name(node.child(2)) == "DataExpr")) { return application(untyped_identifier(parse_Id(node.child(1))), parse_DataExpr(node.child(0)), parse_DataExpr(node.child(2))); }
     else if ((node.child_count() == 4) && (symbol_name(node.child(0)) == "DataExpr") && (symbol_name(node.child(1)) == "whr") && (symbol_name(node.child(2)) == "AssignmentList") && (symbol_name(node.child(3)) == "end")) { return where_clause(parse_DataExpr(node.child(0)), parse_AssignmentList(node.child(2))); }
+    else if ((node.child_count() == 4) && (symbol_name(node.child(0)) == "Id") && (symbol_name(node.child(1)) == "(") && (symbol_name(node.child(2)) == "AssignmentList") && (symbol_name(node.child(3)) == ")")) { return untyped_variable_assignment(parse_Id(node.child(0)), parse_AssignmentList(node.child(2))); }
     throw core::parse_node_unexpected_exception(m_parser, node);
   }
 
