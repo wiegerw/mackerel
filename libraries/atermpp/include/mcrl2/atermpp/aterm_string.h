@@ -1,0 +1,108 @@
+// Author(s): Wieger Wesselink
+// Copyright: see the accompanying file COPYING or copy at
+// https://svn.win.tue.nl/trac/MCRL2/browser/trunk/COPYING
+//
+// Distributed under the Boost Software License, Version 1.0.
+// (See accompanying file LICENSE_1_0.txt or copy at
+// http://www.boost.org/LICENSE_1_0.txt)
+//
+/// \file mcrl2/atermpp/aterm_string.h
+/// \brief Term containing a string.
+
+#ifndef MCRL2_ATERMPP_ATERM_STRING_H
+#define MCRL2_ATERMPP_ATERM_STRING_H
+
+#include <string>
+#include "mcrl2/atermpp/aterm.h"
+#include "mcrl2/atermpp/aterm_appl.h"
+
+namespace atermpp
+{
+
+/// \brief Term containing a string.
+class aterm_string: public aterm_appl
+{
+  public:
+    /// \brief Default constructor.
+    aterm_string()
+    {}
+
+    /// \brief Constructor.
+    /// \param t A term without arguments of type appl. The string is given by the function symbol.
+    explicit aterm_string(const aterm& t)
+      : aterm_appl(t)
+    {
+      assert(size() == 0);
+    }
+
+    /// \brief Constructor.
+    /// \param f A function symbol with arity 0.
+    aterm_string(const function_symbol& f)
+      : aterm_appl(f)
+    {
+      assert(f.arity() == 0);
+      assert(size() == 0);
+    }
+
+    /// \brief Constructor that allows construction from a string.
+    /// \param s A string.
+    aterm_string(const std::string& s)
+      : aterm_appl(function_symbol(s,0))
+    {
+      assert(size() == 0);
+    }
+
+    /// Copy constructor.
+    /// \param t An aterm_string.
+    aterm_string(const aterm_string& t) noexcept = default;
+
+    /// Move constructor.
+    /// \param t An aterm_string.
+    aterm_string(aterm_string&& t) noexcept = default;
+
+    /// Assignment operator.
+    /// \param t An aterm_string.
+    aterm_string& operator=(const aterm_string& t) noexcept = default;
+
+    /// Move assignment operator.
+    /// \param t An aterm_string.
+    aterm_string& operator=(aterm_string&& t) noexcept = default;
+
+    /// \brief Conversion operator
+    /// \return The term converted to string
+    operator std::string() const
+    {
+      return function().name();
+    }
+};
+
+/// \brief Returns the empty aterm string
+inline
+const aterm_string& empty_string()
+{
+  static atermpp::aterm_string t("");
+  return t;
+}
+
+} // namespace atermpp
+
+
+namespace std
+{
+
+/// \brief Swaps two aterm_strings.
+/// \details This operation is more efficient than exchanging terms by an assignment,
+///          as swapping does not require to change the protection of terms.
+///          In order to be used in the standard containers, the declaration must
+///          be preceded by an empty template declaration.
+/// \param t1 The first term
+/// \param t2 The second term
+
+template <>
+inline void swap(atermpp::aterm_string& t1, atermpp::aterm_string& t2) noexcept
+{
+  t1.swap(t2);
+}
+} // namespace std
+
+#endif // MCRL2_ATERMPP_ATERM_STRING_H

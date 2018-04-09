@@ -1,0 +1,440 @@
+// Author(s): Wieger Wesselink
+// Copyright: see the accompanying file COPYING or copy at
+// https://svn.win.tue.nl/trac/MCRL2/browser/trunk/COPYING
+//
+// Distributed under the Boost Software License, Version 1.0.
+// (See accompanying file LICENSE_1_0.txt or copy at
+// http://www.boost.org/LICENSE_1_0.txt)
+//
+/// \file typecheck_test.cpp
+/// \brief Add your file description here.
+
+#include "mcrl2/process/parse.h"
+#include "mcrl2/process/typecheck.h"
+#include <boost/test/included/unit_test_framework.hpp>
+#include <iostream>
+
+using namespace mcrl2;
+
+void test_typechecker_case(std::string const& spec, bool const expected_result)
+{
+  std::clog << std::endl
+            << "<---- testing specification: ---->" << std::endl
+            << spec << std::endl;
+  if (expected_result)
+  {
+    std::clog << "expected result: success" << std::endl;
+    try
+    {
+      process::parse_process_specification(spec);
+    }
+    catch (mcrl2::runtime_error& e) // Catch errors and print them, such that all cases are treated.
+    {
+      std::clog << "type checking failed with error: " << std::endl
+                << e.what() << std::endl;
+      BOOST_CHECK(false);
+    }
+  }
+  else
+  {
+    std::clog << "expected result: failure" << std::endl;
+    BOOST_CHECK_THROW(process::parse_process_specification(spec), mcrl2::runtime_error);
+  }
+}
+
+void test_process_specification(const std::string& ps_in, bool const expected_result = true, bool const test_type_checker = true)
+{
+  process::process_specification p = process::detail::parse_process_specification_new(ps_in);
+  std::string ps_out;
+  if (test_type_checker)
+  {
+    process::process_specification ps = p;
+    if (expected_result)
+    {
+      process::typecheck_process_specification(ps);
+      ps_out = process::pp(ps);
+      if (ps_in != ps_out)
+      {
+        std::cerr << "--- failed test ---" << std::endl << "ps_in =\n" << ps_in << std::endl << std::endl << "ps_out =\n" <<  ps_out << std::endl;
+        BOOST_CHECK_EQUAL(ps_in, ps_out);
+      }
+    }
+    else
+    {
+      BOOST_CHECK_THROW(process::typecheck_process_specification(ps), mcrl2::runtime_error);
+    }
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_concat_element)
+{
+  // Example provided by Tim Willemse, 7 Oct 2009
+  test_typechecker_case(
+    "map place : List(Nat) -> List(Nat); \n"
+    "                                    \n"
+    "var l : List(Nat);                  \n"
+    "                                    \n"
+    "eqn place (l) = head(l) ++ tail(l); \n"
+    "                                    \n"
+    "init delta;                         \n",
+    false
+  );
+}
+
+BOOST_AUTO_TEST_CASE(test_concat_lists)
+{
+  test_typechecker_case(
+    "map place : List(Nat) -> List(Nat); \n"
+    "                                    \n"
+    "var l : List(Nat);                  \n"
+    "                                    \n"
+    "eqn place (l) = l ++ tail(l);       \n"
+    "                                    \n"
+    "init delta;                         \n",
+    true
+  );
+}
+
+BOOST_AUTO_TEST_CASE(test_bug_528a)
+{
+  test_typechecker_case(
+    "sort S = struct c;                  \n"
+    "map succ_: S -> S;                   \n"
+    "eqn succ_(c) = c;                    \n"
+    "init delta;                         \n",
+    true
+  );
+}
+
+BOOST_AUTO_TEST_CASE(test_bug_528b)
+{
+  test_typechecker_case(
+    "sort S,T;                           \n"
+    "map  count_: S # T -> Nat;           \n"
+    "var  x:S;                           \n"
+    "     y:T;                           \n"
+    "eqn  count_(x, y) = 0;               \n"
+    "init delta;                         \n",
+    true
+  );
+}
+
+BOOST_AUTO_TEST_CASE(test_bug_528c)
+{
+  test_typechecker_case(
+    "sort S;                             \n"
+    "map  count_: S -> Nat;               \n"
+    "var  x:S;                           \n"
+    "eqn  count_(x) = 0;                  \n"
+    "init delta;                         \n",
+    true
+  );
+}
+
+BOOST_AUTO_TEST_CASE(test_bug_528d)
+{
+  test_typechecker_case(
+    "map  count: Pos#Bag(Pos)->Nat;      \n"
+    "     f:Nat->Pos;                    \n"
+    "                                    \n"
+    "act  a:Nat;                         \n"
+    "                                    \n"
+    "proc P1(i: Nat) = a(i);             \n"
+    "                                    \n"
+    "init P1(count(3,{3:4}));            \n",
+    false
+  );
+}
+
+
+BOOST_AUTO_TEST_CASE(test_bug_663a)
+{
+  test_typechecker_case(
+    "map const: Pos;                  \n"
+    "eqn const = 10;                  \n"
+    "                                 \n"
+    "proc P1(i: Nat) = delta;         \n"
+    "                                 \n"
+    "init P1(const);                  \n",
+    true
+  );
+}
+
+BOOST_AUTO_TEST_CASE(test_bug_663b)
+{
+  test_typechecker_case(
+    "map const: Pos;                  \n"
+    "eqn const = 10;                  \n"
+    "                                 \n"
+    "proc P1(i: Nat) = delta;         \n"
+    "                                 \n"
+    "init P1(Nat2Pos(Pos2Nat(const)));\n",
+    true
+  );
+}
+
+BOOST_AUTO_TEST_CASE(test_bug_663c)
+{
+  test_typechecker_case(
+    "map const: Pos;                  \n"
+    "eqn const = 10;                  \n"
+    "                                 \n"
+    "proc P1(i: Nat) = delta;         \n"
+    "                                 \n"
+    "init P1(Pos2Nat(const));\n",
+    true
+  );
+}
+
+BOOST_AUTO_TEST_CASE(test_bug_644)
+{
+  test_typechecker_case(
+    "cons maybe: Bool;                \n"
+    "init delta;                      \n",
+    false
+  );
+}
+
+BOOST_AUTO_TEST_CASE(test_bug_626a)
+{
+  test_typechecker_case(
+    "sort S = struct c( proj: Int );     \n"
+    "                                 \n"
+    "map f :(S -> Bool)#S -> S;       \n"
+    "var pre: S -> Bool;             \n"
+    "    s: S;                        \n"
+    "eqn f (pre, s) = s;             \n"
+    "                                 \n"
+    "act a: (S);                      \n"
+    "                                 \n"
+    "init a( f( lambda x:S. proj(x) < 0 , c( 0 ) ) );\n",
+    true
+  );
+}
+
+BOOST_AUTO_TEST_CASE(test_bug_626b)
+{
+  test_typechecker_case(
+    "sort S = struct c( x: Int );     \n"
+    "                                 \n"
+    "map f :(S -> Bool)#S -> S;       \n"
+    "var pre: S -> Bool;             \n"
+    "    s: S;                        \n"
+    "eqn f (pre, s) = s;             \n"
+    "                                 \n"
+    "act a: (S);                      \n"
+    "                                 \n"
+    "init a( f( lambda i:S. x(i) < 0 , c( 0 ) ) );\n",
+    true
+  );
+}
+
+// First test case for issue #629, constructor domain is empty.
+BOOST_AUTO_TEST_CASE(test_bug_629a)
+{
+  test_typechecker_case(
+    "sort L_1=struct insert(L_1) ;    \n"
+    "init delta;                      \n",
+    false
+  );
+}
+
+// Second test case for issue #629, constructor domain is empty.
+BOOST_AUTO_TEST_CASE(test_bug_629b)
+{
+  test_typechecker_case(
+    "sort L_2=struct insert(L_3);     \n"
+    "     L_3=struct insert(L_2);     \n"
+    "init delta;                      \n",
+    false
+  );
+}
+
+// Third test case for issue #629, constructor domain is empty.
+BOOST_AUTO_TEST_CASE(test_bug_629c)
+{
+  test_typechecker_case(
+    "sort D;                          \n"
+    "cons f:D->D;                     \n"
+    "init delta;                      \n",
+    false
+  );
+}
+
+// fourth test case for issue #629, constructor domain is empty.
+BOOST_AUTO_TEST_CASE(test_bug_629d)
+{
+  test_typechecker_case(
+    "sort D =struct f(struct g(D));"
+    "init delta;",
+    false
+  );
+}
+
+// fifth test case for issue #629, constructor domain is NOT empty.
+BOOST_AUTO_TEST_CASE(test_bug_629e)
+{
+  test_typechecker_case(
+    "sort D =struct f(struct g(Nat));"
+    "init delta;",
+    true
+  );
+}
+
+// Tricky test case that should succeed, as sorts are not recursively defined through sort containers.
+BOOST_AUTO_TEST_CASE(test_recursive_a)
+{
+  test_typechecker_case(
+    "sort MyRecType=struct f | g(MyRecType);"
+    "     D=List(MyRecType);"
+    "init delta;",
+    true
+  );
+}
+
+
+// Tricky test case that should succeed, as recursive sorts are are defined through the list containers
+// are allowed.
+BOOST_AUTO_TEST_CASE(test_recursive_b)
+{
+  test_typechecker_case(
+    "sort MyRecType=struct f | g(List(MyRecType));"
+    "init delta;",
+    true
+  );
+}
+
+// Tricky test case that should succeed, as sorts are not recursively defined through sort containers.
+BOOST_AUTO_TEST_CASE(test_recursive_c)
+{
+  test_typechecker_case(
+    "sort MyRecType=struct f | g(MyRecType);"
+    "     D=List(MyRecType)->MyRecType;"
+    "init delta;",
+    true
+  );
+}
+
+// Tricky test case that should fail, as recursive sorts are are defined through sort containers
+// but in this case it is not that easy to see.
+BOOST_AUTO_TEST_CASE(test_recursive_d)
+{
+  test_typechecker_case(
+    "sort MyRecType=struct f | g(MyRecType->Nat);"
+    "init delta;",
+    false
+  );
+}
+
+// Test case below went wrong, because sort expression was confused with a function symbol
+BOOST_AUTO_TEST_CASE(test_sort_expression_vs_function_symbol)
+{
+  test_typechecker_case(
+    "map  const: Pos;                 \n"
+    "     f:Nat->Pos;                 \n"
+    "eqn  const  =  10;               \n"
+    "proc P1(i: Nat) = delta;         \n"
+    "init P1(f(const));               \n",
+    true
+  );
+}
+
+BOOST_AUTO_TEST_CASE(test_real_zero)
+{
+  test_typechecker_case(
+    "sort T = Real;\n"
+    "map  x: List(T) -> List(T);\n"
+    "var  l: List(T);\n"
+    "     r: T;\n"
+    "eqn  x(r |> l) = (r+0) |> l;\n"
+    "act  a: List(T);\n"
+    "init a(x([0]));\n",
+    true
+  );
+}
+
+// The following example tests whether a double assignment in a
+// process is properly caught by the typechecker.
+BOOST_AUTO_TEST_CASE(test_double_variable_assignment_in_process)
+{
+  test_typechecker_case(
+    "proc X( v :Bool  ) = tau.  X( v = true, v = false );\n"
+    "init X(true);",
+    false);
+}
+
+BOOST_AUTO_TEST_CASE(test_typecheck)
+{
+  std::string text =
+    "act  a;\n"
+    "glob d,c,b: Bool;\n"
+         "n,m: Nat;\n"
+         "p: Pos;\n"
+    "proc P(b,c: Bool) = a . P(c = true);\n"
+    "init delta;\n"
+    ;
+  process::process_specification procspec = process::detail::parse_process_specification_new(text);
+  process::typecheck_process_specification(procspec);
+}
+
+BOOST_AUTO_TEST_CASE(test_process_reference_assignment)
+{
+  //test process specification involving process reference assignments
+  test_process_specification(
+    "proc P(b: Bool) = tau . P() + tau . P(b = false);\n"
+    "\n"
+    "init P(b = true);\n"
+  );
+}
+
+BOOST_AUTO_TEST_CASE(test_global_variables)
+{
+  //test process specification involving global variables
+  test_process_specification(
+    "glob dc: Bool;\n"
+    "\n"
+    "proc P(b: Bool) = tau . P(dc);\n"
+    "\n"
+    "init P(dc);\n"
+  );
+}
+
+// For bug #732
+BOOST_AUTO_TEST_CASE(test_function_condition)
+{
+  test_process_specification(
+    "map  b: Nat -> Nat;\n\n"
+    "init b -> tau;\n",
+    false
+  );
+}
+
+// For bug #732
+BOOST_AUTO_TEST_CASE(test_function_as_set_descriptor)
+{
+  test_process_specification(
+    "map  b: Bool # Pos -> Nat;\n"
+    "     s: Set(Nat);\n\n"
+    "eqn  s  =  { n: Nat | b };\n\n"
+    "init b -> tau;\n",
+    false
+  );
+}
+
+// For bug #732
+BOOST_AUTO_TEST_CASE(test_function_as_equation_condition)
+{
+  test_process_specification(
+    "map  b: Bool # Pos -> Nat;\n"
+    "     n: Nat;\n\n"
+    "eqn  b  ->  n  =  0;\n\n"
+    "act  a: Nat;\n\n"
+    "init a(n);\n",
+    false
+  );
+}
+
+boost::unit_test::test_suite* init_unit_test_suite(int argc, char* argv[])
+{
+  return nullptr;
+}
