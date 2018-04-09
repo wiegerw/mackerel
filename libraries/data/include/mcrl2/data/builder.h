@@ -99,6 +99,14 @@ struct add_sort_expressions: public Builder<Derived>
     return result;
   }
 
+  data::variable_assignment apply(const data::variable_assignment& x)
+  {
+    static_cast<Derived&>(*this).enter(x);
+    data::variable_assignment result = data::variable_assignment(x.name(), static_cast<Derived&>(*this).apply(x.sort()), x.assignments());
+    static_cast<Derived&>(*this).leave(x);
+    return result;
+  }
+
   data::untyped_identifier apply(const data::untyped_identifier& x)
   {
     static_cast<Derived&>(*this).enter(x);
@@ -291,6 +299,10 @@ struct add_sort_expressions: public Builder<Derived>
     {
       result = static_cast<Derived&>(*this).apply(atermpp::down_cast<data::where_clause>(x));
     }
+    else if (data::is_variable_assignment(x))
+    {
+      result = static_cast<Derived&>(*this).apply(atermpp::down_cast<data::variable_assignment>(x));
+    }
     else if (data::is_untyped_identifier(x))
     {
       result = static_cast<Derived&>(*this).apply(atermpp::down_cast<data::untyped_identifier>(x));
@@ -390,6 +402,10 @@ template <typename Derived>
 struct sort_expression_builder: public add_sort_expressions<core::builder, Derived>
 {
   typedef add_sort_expressions<core::builder, Derived> super;
+  using super::enter;
+  using super::leave;
+  using super::update;
+  using super::apply;
 };
 //--- end generated add_sort_expressions code ---//
 
@@ -441,6 +457,14 @@ struct add_data_expressions: public Builder<Derived>
     data::where_clause result = data::where_clause(static_cast<Derived&>(*this).apply(x.body()), static_cast<Derived&>(*this).apply(x.declarations()));
     static_cast<Derived&>(*this).leave(x);
     return result;
+  }
+
+  data::variable_assignment apply(const data::variable_assignment& x)
+  {
+    static_cast<Derived&>(*this).enter(x);
+    // skip
+    static_cast<Derived&>(*this).leave(x);
+    return x;
   }
 
   data::untyped_identifier apply(const data::untyped_identifier& x)
@@ -555,6 +579,10 @@ struct add_data_expressions: public Builder<Derived>
     {
       result = static_cast<Derived&>(*this).apply(atermpp::down_cast<data::where_clause>(x));
     }
+    else if (data::is_variable_assignment(x))
+    {
+      result = static_cast<Derived&>(*this).apply(atermpp::down_cast<data::variable_assignment>(x));
+    }
     else if (data::is_untyped_identifier(x))
     {
       result = static_cast<Derived&>(*this).apply(atermpp::down_cast<data::untyped_identifier>(x));
@@ -618,6 +646,10 @@ template <typename Derived>
 struct data_expression_builder: public add_data_expressions<core::builder, Derived>
 {
   typedef add_data_expressions<core::builder, Derived> super;
+  using super::enter;
+  using super::leave;
+  using super::update;
+  using super::apply;
 };
 //--- end generated add_data_expressions code ---//
 
@@ -668,6 +700,14 @@ struct add_variables: public Builder<Derived>
     data::where_clause result = data::where_clause(static_cast<Derived&>(*this).apply(x.body()), static_cast<Derived&>(*this).apply(x.declarations()));
     static_cast<Derived&>(*this).leave(x);
     return result;
+  }
+
+  data::variable_assignment apply(const data::variable_assignment& x)
+  {
+    static_cast<Derived&>(*this).enter(x);
+    // skip
+    static_cast<Derived&>(*this).leave(x);
+    return x;
   }
 
   data::untyped_identifier apply(const data::untyped_identifier& x)
@@ -782,6 +822,10 @@ struct add_variables: public Builder<Derived>
     {
       result = static_cast<Derived&>(*this).apply(atermpp::down_cast<data::where_clause>(x));
     }
+    else if (data::is_variable_assignment(x))
+    {
+      result = static_cast<Derived&>(*this).apply(atermpp::down_cast<data::variable_assignment>(x));
+    }
     else if (data::is_untyped_identifier(x))
     {
       result = static_cast<Derived&>(*this).apply(atermpp::down_cast<data::untyped_identifier>(x));
@@ -845,6 +889,10 @@ template <typename Derived>
 struct variable_builder: public add_variables<core::builder, Derived>
 {
   typedef add_variables<core::builder, Derived> super;
+  using super::enter;
+  using super::leave;
+  using super::update;
+  using super::apply;
 };
 //--- end generated add_variables code ---//
 

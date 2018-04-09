@@ -80,6 +80,7 @@ std::string pp(const data::untyped_set_or_bag_comprehension_binder& x) { return 
 std::string pp(const data::untyped_sort& x) { return data::pp< data::untyped_sort >(x); }
 std::string pp(const data::untyped_sort_variable& x) { return data::pp< data::untyped_sort_variable >(x); }
 std::string pp(const data::variable& x) { return data::pp< data::variable >(x); }
+std::string pp(const data::variable_assignment& x) { return data::pp< data::variable_assignment >(x); }
 std::string pp(const data::where_clause& x) { return data::pp< data::where_clause >(x); }
 data::data_equation normalize_sorts(const data::data_equation& x, const data::sort_specification& sortspec) { return data::normalize_sorts< data::data_equation >(x, sortspec); }
 data::data_equation_list normalize_sorts(const data::data_equation_list& x, const data::sort_specification& sortspec) { return data::normalize_sorts< data::data_equation_list >(x, sortspec); }

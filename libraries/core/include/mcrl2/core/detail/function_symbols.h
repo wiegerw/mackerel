@@ -1213,6 +1213,14 @@ const atermpp::function_symbol& function_symbol_UntypedSortsPossible()
   return function_symbol_UntypedSortsPossible;
 }
 
+// VariableUpdate
+inline
+const atermpp::function_symbol& function_symbol_VariableUpdate()
+{
+  static const atermpp::function_symbol function_symbol_VariableUpdate = atermpp::function_symbol("VariableUpdate", 3);
+  return function_symbol_VariableUpdate;
+}
+
 // Whr
 inline
 const atermpp::function_symbol& function_symbol_Whr()
@@ -1291,6 +1299,7 @@ static const atermpp::function_symbol BooleanOr;
   static const atermpp::function_symbol Rename;
   static const atermpp::function_symbol Exists;
   static const atermpp::function_symbol Sync;
+  static const atermpp::function_symbol VariableUpdate;
   static const atermpp::function_symbol ActExists;
   static const atermpp::function_symbol ProcSpec;
   static const atermpp::function_symbol UntypedSortsPossible;

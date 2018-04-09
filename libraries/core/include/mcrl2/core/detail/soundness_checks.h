@@ -264,6 +264,7 @@ template <typename Term> bool check_term_Block(Term t);
 template <typename Term> bool check_term_Rename(Term t);
 template <typename Term> bool check_term_Exists(Term t);
 template <typename Term> bool check_term_Sync(Term t);
+template <typename Term> bool check_term_VariableUpdate(Term t);
 template <typename Term> bool check_term_ActExists(Term t);
 template <typename Term> bool check_term_ProcSpec(Term t);
 template <typename Term> bool check_term_UntypedSortsPossible(Term t);
@@ -408,6 +409,7 @@ bool check_rule_DataExpr(Term t)
 #ifndef MCRL2_NO_SOUNDNESS_CHECKS
   return check_rule_DataVarId(t)
          || check_rule_OpId(t)
+         || check_term_VariableUpdate(t)
          || check_term_DataAppl(t)
          || check_term_Binder(t)
          || check_term_Whr(t)
@@ -3345,6 +3347,50 @@ bool check_term_Sync(Term t)
   if (!check_term_argument(a[1], check_rule_ProcExpr<atermpp::aterm>))
   {
     mCRL2log(log::debug, "soundness_checks") << "check_rule_ProcExpr" << std::endl;
+    return false;
+  }
+#endif // LPS_NO_RECURSIVE_SOUNDNESS_CHECKS
+
+#endif // MCRL2_NO_SOUNDNESS_CHECKS
+  return true;
+}
+
+// VariableUpdate(String, SortExpr, DataVarIdInit+)
+template <typename Term>
+bool check_term_VariableUpdate(Term t)
+{
+#ifndef MCRL2_NO_SOUNDNESS_CHECKS
+  // check the type of the term
+  const atermpp::aterm& term(t);
+  if (!term.type_is_appl())
+  {
+    return false;
+  }
+  const atermpp::aterm_appl& a = atermpp::down_cast<atermpp::aterm_appl>(term);
+  if (a.function() != core::detail::function_symbols::VariableUpdate)
+  {
+    return false;
+  }
+
+  // check the children
+  if (a.size() != 3)
+  {
+    return false;
+  }
+#ifndef LPS_NO_RECURSIVE_SOUNDNESS_CHECKS
+  if (!check_term_argument(a[0], check_rule_String<atermpp::aterm>))
+  {
+    mCRL2log(log::debug, "soundness_checks") << "check_rule_String" << std::endl;
+    return false;
+  }
+  if (!check_term_argument(a[1], check_rule_SortExpr<atermpp::aterm>))
+  {
+    mCRL2log(log::debug, "soundness_checks") << "check_rule_SortExpr" << std::endl;
+    return false;
+  }
+  if (!check_list_argument(a[2], check_rule_DataVarIdInit<atermpp::aterm>, 1))
+  {
+    mCRL2log(log::debug, "soundness_checks") << "check_rule_DataVarIdInit" << std::endl;
     return false;
   }
 #endif // LPS_NO_RECURSIVE_SOUNDNESS_CHECKS
