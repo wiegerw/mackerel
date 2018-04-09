@@ -1,0 +1,12 @@
+project aterm
+       : source-location ..
+       ;
+
+lib aterm
+       : [ glob source/*.cpp ]
+       : <include>../include/atermpp
+         <address-model>64:<define>AT_64BIT
+         <library>/utilities//utilities
+       :
+       : <include>../include/atermpp
+       ;

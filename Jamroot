@@ -1,0 +1,70 @@
+import os ;
+import path ;
+import regex ;
+import set ;
+
+local BOOST_ROOT = [ os.environ BOOST_ROOT ] ;
+
+use-project boost
+  : $(BOOST_ROOT) ;
+
+path-constant MCRL2_ROOT : . ;
+
+project mcrl2
+   : requirements
+       <include>libraries/aterm/include
+       <include>libraries/atermpp/include
+       <include>libraries/core/include
+       <include>libraries/data/include
+       <include>libraries/lps/include
+       <include>libraries/process/include
+       <include>libraries/utilities/include
+
+       #--- Windows settings ---#
+       <target-os>windows:<define>WIN32
+       <target-os>windows:<define>__WIN32__
+       <target-os>windows:<define>MCRL2_HAVE_NULLPTR
+
+       #--- clang settings ---#
+       <toolset>clang:<cxxflags>"-std=c++14 -stdlib=libstdc++ -Wno-gnu-zero-variadic-macro-arguments" <warnings>all
+       <target-os>linux,<toolset>clang:<linkflags>-ldl
+
+       #--- g++ settings ---#
+       <toolset>gcc:<cxxflags>"-std=c++14"
+       <target-os>linux,<toolset>gcc:<linkflags>-ldl
+
+       #--- Visual C++ settings ---#
+       <toolset>msvc:<define>_CRT_SECURE_NO_DEPRECATE
+       <toolset>msvc:<define>_CRT_SECURE_NO_WARNINGS
+       <toolset>msvc:<define>_SCL_SECURE_NO_WARNINGS
+       <toolset>msvc:<define>_SCL_SECURE_NO_DEPRECATE
+       <toolset>msvc:<define>_SECURE_SCL=0
+       <toolset>msvc:<include>build/workarounds/msvc
+       <toolset>msvc:<cxxflags>/wd4244
+       <toolset>msvc:<cxxflags>/wd4200
+
+       #--- boost libraries ---#
+       <library>/boost/test//boost_unit_test_framework
+   ;
+
+rule test_all
+{
+   local all_rules = ;
+
+   for local fileb in [ glob *.cpp ]
+   {
+      all_rules += [ run $(fileb) ] ;
+   }
+
+   return $(all_rules) ;
+}
+
+use-project /dparser       : 3rd-party/dparser/build ;
+use-project /aterm         : libraries/atermpp/build ;
+use-project /core          : libraries/core/build ;
+use-project /data          : libraries/data/build ;
+use-project /lps           : libraries/lps/build ;
+use-project /process       : libraries/process/build ;
+use-project /utilities     : libraries/utilities/build ;
+
+build-project tools ;

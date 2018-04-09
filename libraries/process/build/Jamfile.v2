@@ -1,0 +1,12 @@
+project process
+       : source-location ../source
+       ;
+
+lib process
+       : process.cpp
+       :
+         <library>/aterm//aterm
+         <library>/core//core
+         <library>/data//data
+         <library>/utilities//utilities
+       ;

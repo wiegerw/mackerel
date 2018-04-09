@@ -1,0 +1,9 @@
+project utilities
+       : source-location ..
+#       : requirements <define>MCRL2_VERSION=\\\"2012.0\\\"
+       ;
+
+lib utilities
+       : source/command_line_interface.cpp source/toolset_version.cpp source/logger.cpp source/text_utility.cpp
+       :
+       ;

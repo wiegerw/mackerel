@@ -1,0 +1,49 @@
+project dparser
+   : requirements
+     <include>..
+     <toolset>msvc:<define>strtoll=_strtoi64
+     <toolset>msvc:<define>strncasecmp=_strnicmp
+     <toolset>msvc:<define>snprintf=_snprintf
+	 <toolset>msvc:<define>D_BUILD_VERSION="\\\"1.26\\\"" 
+   : usage-requirements
+     <include>..
+     <toolset>msvc:<define>strtoll=_strtoi64
+     <toolset>msvc:<define>strncasecmp=_strnicmp
+     <toolset>msvc:<define>snprintf=_snprintf
+   ;
+
+lib dparser
+   :
+     ../arg.c
+     ../parse.c
+     ../scan.c
+     ../symtab.c
+     ../util.c
+     ../read_binary.c
+     ../dparse_tree.c
+   ;
+
+exe make_dparser
+  :
+    ../make_dparser.c
+    ../version.c
+    ../mkdparse.c
+    ../write_tables.c
+    ../grammar.g.c
+    ../gram.c
+    ../lex.c
+    ../lr.c
+    dparser
+  :
+    <define>D_MAJOR_VERSION=1
+    <define>D_MINOR_VERSION=26
+    <define>D_BUILD_VERSION='\"mCRL2\"'
+    <define>D_USE_FREELISTS=1
+  ;
+
+install dist
+   :
+     make_dparser
+   :
+     <location>.
+   ;

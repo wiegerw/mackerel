@@ -1,0 +1,14 @@
+project lps
+       : source-location ../source
+       ;
+
+lib lps
+       :
+         [ glob ../source/*.cpp ]
+       :
+         <library>/aterm//aterm
+         <library>/core//core
+         <library>/data//data
+         <library>/process//process
+         <library>/utilities//utilities
+       ;

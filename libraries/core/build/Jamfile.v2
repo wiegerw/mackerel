@@ -1,0 +1,17 @@
+project core ;
+
+lib core
+       :
+         ../source/core.cpp
+         ../source/dparser.cpp
+         ../source/mcrl2_syntax.c
+         #../../../doc/specs/mcrl2-syntax.g
+       :
+         <library>/aterm//aterm
+         <library>/dparser//dparser
+         <library>/utilities//utilities
+         <library>//dparser//dparser
+         #<dparser-options>"-A -H1 -i mcrl2"
+       :
+       : #<toolset>gcc,<link>static:<linkflags>-export-dynamic
+       ;

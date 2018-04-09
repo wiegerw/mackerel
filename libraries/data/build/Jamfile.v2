@@ -1,0 +1,13 @@
+project data ;
+
+lib data
+       :
+         [ glob ../source/*.cpp ]
+         [ glob ../source/detail/enumerate/*.cpp ]
+         [ glob ../source/detail/prover/*.cpp ]
+         [ glob ../source/detail/rewrite/*.cpp ]
+       :
+         <library>/aterm//aterm
+         <library>/core//core
+         <library>/utilities//utilities
+       ;
