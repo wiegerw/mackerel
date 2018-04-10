@@ -42,6 +42,7 @@ std::tuple<bool, data::data_expression_vector, std::string> match_action_paramet
     }
     catch (mcrl2::runtime_error& e)
     {
+std::cout << "expression " << *i << " does not have sort " << *j << std::endl;
       return std::make_tuple(false, data::data_expression_vector(), std::string(e.what()));
     }
   }

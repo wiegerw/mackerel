@@ -1,0 +1,45 @@
+project(MACKEREL)
+
+cmake_minimum_required(VERSION 3.5.1)
+set(BUILD_SHARED_LIBS OFF)
+
+if (WIN32)
+  if(MSVC)
+    add_definitions(-D_SCL_SECURE_NO_WARNINGS)
+    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+    add_definitions(/wd4819)
+  endif(MSVC)
+endif (WIN32)
+
+if(CMAKE_COMPILER_IS_GNUCXX)
+  add_definitions(-std=c++14)
+  add_definitions(-fPIC)
+endif(CMAKE_COMPILER_IS_GNUCXX)
+
+include_directories(3rd-party/dparser)
+include_directories(build/workarounds)
+include_directories(libraries/atermpp/include)
+include_directories(libraries/core/include)
+include_directories(libraries/data/include)
+include_directories(libraries/lps/include)
+include_directories(libraries/process/include)
+include_directories(libraries/utilities/include)
+
+#add_definitions(-DBOOST_ALL_NO_LIB=1)
+#set(THREADS_PREFER_PTHREAD_FLAG ON)
+#find_package(Threads REQUIRED)
+#find_package(Boost REQUIRED COMPONENTS filesystem program_options system)
+#set (Boost_USE_STATIC_LIBS ON)
+
+include_directories( ${Boost_INCLUDE_DIRS} )
+
+add_subdirectory(3rd-party/dparser)
+add_subdirectory(libraries/atermpp)
+add_subdirectory(libraries/core)
+add_subdirectory(libraries/data)
+add_subdirectory(libraries/lps)
+add_subdirectory(libraries/process)
+add_subdirectory(libraries/utilities)
+
+add_subdirectory(tools/mcrl32lps)
+add_subdirectory(tools/mcrl3transform)
