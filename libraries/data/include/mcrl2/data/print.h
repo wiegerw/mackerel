@@ -919,6 +919,14 @@ struct printer: public data::add_traverser_sort_expressions<core::detail::printe
     derived().leave(x);
   }
 
+  void apply(const data::untyped_variable_assignment& x)
+  {
+    derived().enter(x);
+    derived().apply(x.name());
+    print_list(x.assignments(), "(", ")", ", ");
+    derived().leave(x);
+  }
+
   void apply(const data::set_comprehension_binder& x)
   {
     derived().enter(x);
