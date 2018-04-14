@@ -73,6 +73,13 @@ inline application real_minus(const data_expression& arg0, const data_expression
   return application(minus_f,arg0,arg1);
 }
 
+inline application real_negate(const data_expression& arg)
+{
+  static function_symbol negate_f(sort_real::negate_name(), make_function_sort(sort_real::real_(), sort_real::real_()));
+  assert(arg.sort()==sort_real::real_());
+  return application(negate_f,arg);
+}
+
 // End of functions that ought to be defined elsewhere.
 
 
@@ -156,7 +163,7 @@ namespace detail
      // \brief Transform the variable with factor to a data_expression.
      data_expression transform_to_data_expression() const
      {
-       return sort_real::times(factor(),variable_name());
+       return real_times(factor(),variable_name());
      }
   };
 
@@ -267,7 +274,7 @@ namespace detail
          }
          else 
          {
-           result=sort_real::plus(result,p.transform_to_data_expression());
+           result=real_plus(result,p.transform_to_data_expression());
          }
        }
        return result;
@@ -556,27 +563,27 @@ class linear_inequality: public atermpp::aterm_appl
       detail::map_based_lhs_t& new_lhs,
       data_expression& new_rhs,
       const rewriter& r,
-      bool negate=false,
+      const bool negate = false,
       const data_expression& factor=real_one())
     {
-      if (sort_real::is_minus_application(e) && application(e).size()==2)
+      if (sort_real::is_minus_application(e))
       {
-        parse_and_store_expression(data::binary_left(application(e)),new_lhs,new_rhs,r,negate,factor);
-        parse_and_store_expression(data::binary_right(application(e)),new_lhs,new_rhs,r,!negate,factor);
+        parse_and_store_expression(data::binary_left(atermpp::down_cast<application>(e)),new_lhs,new_rhs,r,negate,factor);
+        parse_and_store_expression(data::binary_right(atermpp::down_cast<application>(e)),new_lhs,new_rhs,r,!negate,factor);
       }
-      else if (sort_real::is_negate_application(e) && application(e).size()==1)
+      else if (sort_real::is_negate_application(e))
       {
-        parse_and_store_expression(*(application(e).begin()),new_lhs,new_rhs,r,!negate,factor);
+        parse_and_store_expression(*(atermpp::down_cast<application>(e).begin()),new_lhs,new_rhs,r,!negate,factor);
       }
       else if (sort_real::is_plus_application(e))
       {
-        parse_and_store_expression(data::binary_left(application(e)),new_lhs,new_rhs,r,negate,factor);
-        parse_and_store_expression(data::binary_right(application(e)),new_lhs,new_rhs,r,negate,factor);
+        parse_and_store_expression(data::binary_left(atermpp::down_cast<application>(e)),new_lhs,new_rhs,r,negate,factor);
+        parse_and_store_expression(data::binary_right(atermpp::down_cast<application>(e)),new_lhs,new_rhs,r,negate,factor);
       }
       else if (sort_real::is_times_application(e))
       {
-        data_expression lhs=rewrite_with_memory(data::binary_left(application(e)),r);
-        data_expression rhs=rewrite_with_memory(data::binary_right(application(e)),r);
+        data_expression lhs = rewrite_with_memory(data::binary_left(atermpp::down_cast<application>(e)),r);
+        data_expression rhs = rewrite_with_memory(data::binary_right(atermpp::down_cast<application>(e)),r);
         if (is_closed_real_number(lhs))
         {
           parse_and_store_expression(rhs,new_lhs,new_rhs,r,negate,real_times(lhs,factor));
@@ -592,37 +599,26 @@ class linear_inequality: public atermpp::aterm_appl
       }
       else if (is_variable(e))
       {
-        if (e.sort() == sort_real::real_())
-        {
-          const variable& v=atermpp::down_cast<variable>(e);
-          if (new_lhs.find(v) == new_lhs.end())
-          {
-            detail::set_factor_for_a_variable(new_lhs,v,(negate?rewrite_with_memory(sort_real::negate(factor),r)
-                                         :rewrite_with_memory(factor,r)));
-          }
-          else
-          {
-            detail::set_factor_for_a_variable(new_lhs,v,(negate?rewrite_with_memory(real_minus(new_lhs[v],factor),r)
-                                         :rewrite_with_memory(real_plus(new_lhs[v],factor),r)));
-          }
-        }
-        else
+        const variable& v=atermpp::down_cast<variable>(e);
+        if(v.sort() != sort_real::real_())
         {
           throw mcrl2::runtime_error("Encountered a variable in a real expression which is not of sort real: " + pp(e) + "\n");
         }
+        const detail::map_based_lhs_t::const_iterator var_factor = new_lhs.find(v);
+
+        const data_expression neg_factor(negate ? real_negate(factor) : factor);
+        const data_expression new_factor(var_factor == new_lhs.end() ? neg_factor : real_plus(var_factor->second, neg_factor));
+        detail::set_factor_for_a_variable(new_lhs, v, rewrite_with_memory(new_factor, r));
       }
       else if (is_closed_real_number(rewrite_with_memory(e,r)))
       {
-        if (factor==real_one())
+        // We are reasoning about the rhs, so apply double negation in case 'negate' is true
+        data_expression add_to_rhs(negate ? e : real_negate(e));
+        if(factor != real_one())
         {
-          new_rhs=(negate?rewrite_with_memory(real_plus(new_rhs,e),r)
-                             :rewrite_with_memory(real_minus(new_rhs,real_times(factor,e)),r));
+          add_to_rhs = real_times(factor, add_to_rhs);
         }
-        else
-        {
-          new_rhs=(negate?rewrite_with_memory(real_plus(new_rhs, real_times(factor,e)),r)
-                          :rewrite_with_memory(real_minus(new_rhs,real_times(factor,e)),r));
-        }
+        new_rhs = rewrite_with_memory(real_plus(new_rhs, add_to_rhs), r);
       }
       else
       {
@@ -885,9 +881,9 @@ class linear_inequality: public atermpp::aterm_appl
                               [&](const detail::variable_with_a_rational_factor& p)
                                       { return detail::variable_with_a_rational_factor(
                                                     p.variable_name(),
-                                                    rewrite_with_memory(sort_real::negate(p.factor()),r));});
+                                                    rewrite_with_memory(real_negate(p.factor()),r));});
 
-      const data_expression new_rhs=rewrite_with_memory(sort_real::negate(rhs()),r);
+      const data_expression new_rhs=rewrite_with_memory(real_negate(rhs()),r);
       if (comparison()==detail::less)
       {
         // set_comparison(detail::less_eq);
@@ -988,11 +984,7 @@ inline bool is_closed_real_number(const data_expression& e)
   }
 
   std::set < variable > s=find_all_variables(e);
-  if (!s.empty())  // The expression e contains variables.
-  {
-    return false;
-  }
-  return true;
+  return s.empty();
 }
 
 inline bool is_negative(const data_expression& e,const rewriter& r)
@@ -1428,24 +1420,10 @@ namespace detail
           }
           else
           {
-            if (current_root->m_node==true_end_node)
-            {
-              return true;
+            return current_root->m_node==true_end_node;
             }
-            else
-            {
-              return false;
-            }
-          }
         }
-        if (current_root->m_node==true_end_node)
-        {
-          return true;
-        }
-        else
-        {
-          return false;
-        }
+        return current_root->m_node==true_end_node;
       }
 
       void add_inconsistent_inequality_set(const std::vector < linear_inequality >& inequalities_in_)
@@ -1568,18 +1546,7 @@ namespace detail
           }
           else
           {
-            if (current_root->m_node==false_end_node)
-            {
-              return false;
-            }
-            if (i==inequalities_in.end())
-            {
-              return true;
-            }
-            else 
-            {
-              return false;
-            }
+            return current_root->m_node!=false_end_node && i==inequalities_in.end();
           }
         }
         return true;

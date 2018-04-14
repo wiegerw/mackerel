@@ -325,7 +325,7 @@ struct fourier_motzkin_sigma: public std::unary_function<data_expression, data_e
   
     const data_expression apply(const abstraction& d, bool negate) const
     {
-      const variable_list variables = d.variables();
+      const variable_list& variables = d.variables();
       const data_expression body = rewr(negate ? sort_bool::not_(d.body()) : d.body());
   
       variable_list new_variables;

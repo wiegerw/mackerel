@@ -243,11 +243,10 @@ inline void split_condition(
   for(std::vector < data_expression_list >::const_iterator i=aux_real_conditions.begin(), j=aux_non_real_conditions.begin();
               i!=aux_real_conditions.end(); ++i, ++j)
   {
-    if(non_real_expression_map[*i] == data_expression())
-    {
-      non_real_expression_map[*i] = sort_bool::false_();
-    }
-    non_real_expression_map[*i] = lazy::or_(non_real_expression_map[*i], lazy::join_and(j->begin(), j->end()));
+    // Find the entry for *i, inserting false if it does not exist yet
+    std::map< data_expression_list, data_expression >::iterator insert_result =
+        non_real_expression_map.insert(std::make_pair(*i, sort_bool::false_())).first;
+    insert_result->second = lazy::or_(insert_result->second, lazy::join_and(j->begin(), j->end()));
   }
   // Convert the map to a pair of vectors
   for(const std::pair< data_expression_list, data_expression >& expr_pair: non_real_expression_map)
