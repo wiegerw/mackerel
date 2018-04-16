@@ -29,6 +29,7 @@
 #include "mcrl2/data/bag.h"
 #include "mcrl2/data/print.h"
 #include "mcrl2/data/typecheck.h"
+#include "mcrl2/data/untyped_variable_assignment.h"
 
 using namespace mcrl2::log;
 using namespace mcrl2::core::detail;
@@ -744,7 +745,7 @@ bool data_type_checker::UnArrowProd(const sort_expression_list& ArgTypes, sort_e
       }
       NewPosTypes = detail::insert_sort_unique(NewPosTypes, NewPosType);
     }
-    NewPosTypes = reverse(NewPosTypes);
+    NewPosTypes = atermpp::reverse(NewPosTypes);
     result = untyped_possible_sorts(sort_expression_list(NewPosTypes));
     return true;
   }
@@ -799,22 +800,22 @@ bool data_type_checker::match_if(const function_sort& type, sort_expression& res
 
 bool data_type_checker::match_relational_operators(const function_sort& type, sort_expression& result) const
 {
-  sort_expression_list Args = type.domain();
-  if (Args.size() != 2)
+  sort_expression_list domain = type.domain();
+  if (domain.size() != 2)
   {
     return false;
   }
-  sort_expression Arg1 = Args.front();
-  Args = Args.tail();
-  sort_expression Arg2 = Args.front();
+  sort_expression arg1 = domain.front();
+  domain = domain.tail();
+  sort_expression arg2 = domain.front();
 
-  sort_expression Arg;
-  if (!unify_minimum_type(Arg1, Arg2, Arg))
+  sort_expression arg;
+  if (!unify_minimum_type(arg1, arg2, arg))
   {
     return false;
   }
 
-  result = function_sort({Arg, Arg}, sort_bool::bool_());
+  result = function_sort({ arg, arg }, sort_bool::bool_());
   return true;
 }
 
@@ -832,7 +833,6 @@ bool data_type_checker::match_sqrt(const function_sort& type, sort_expression& r
   }
   return false;
 }
-
 
 bool data_type_checker::match_cons(const function_sort& type, sort_expression& result) const
 {
@@ -1278,7 +1278,6 @@ bool data_type_checker::match_bag_constructor(const function_sort& type, sort_ex
   return true;
 }
 
-
 bool data_type_checker::match_in(const function_sort& type, sort_expression& result) const
 {
   sort_expression_list domain = type.domain();
@@ -1339,8 +1338,7 @@ bool data_type_checker::match_fset_insert(const function_sort& type, sort_expres
     return false;
   }
 
-  const sort_expression fset_type = container_sort(atermpp::down_cast<const container_sort>(arg2).container_name(),
-                                                   sort);
+  const sort_expression fset_type = container_sort(atermpp::down_cast<const container_sort>(arg2).container_name(), sort);
   result = function_sort({sort, fset_type}, fset_type);
   return true;
 }
@@ -1386,9 +1384,7 @@ bool data_type_checker::match_fbag_cinsert(const function_sort& type, sort_expre
     return false;
   }
 
-
-  const sort_expression fbag_type = container_sort(atermpp::down_cast<const container_sort>(third).container_name(),
-                                                   sort);
+  const sort_expression fbag_type = container_sort(atermpp::down_cast<const container_sort>(third).container_name(), sort);
   result = function_sort({sort, second_sort, fbag_type}, fbag_type);
   return true;
 }
@@ -1785,8 +1781,7 @@ sort_expression data_type_checker::expand_numeric_types_up(const sort_expression
   }
   if (equal_sorts(sort_pos::pos(), x))
   {
-    return untyped_possible_sorts(
-            sort_expression_list({sort_pos::pos(), sort_nat::nat(), sort_int::int_(), sort_real::real_()}));
+    return untyped_possible_sorts(sort_expression_list({sort_pos::pos(), sort_nat::nat(), sort_int::int_(), sort_real::real_()}));
   }
   if (equal_sorts(sort_nat::nat(), x))
   {
@@ -2278,9 +2273,7 @@ data_expression data_type_checker::typecheck_n(const data_expression& x, const s
         sort_expression temp;
         if (!match_sorts(TypeA, expected_sort1, temp))
         {
-          throw mcrl2::runtime_error("The type " + data::pp(TypeA) + " of variable " + core::pp(name)
-                                     + " is incompatible with " + data::pp(expected_sort1) + " (typechecking " +
-                                     data::pp(x1) + ").");
+          throw mcrl2::runtime_error("The type " + data::pp(TypeA) + " of variable " + core::pp(name) + " is incompatible with " + data::pp(expected_sort1) + " (typechecking " + data::pp(x1) + ").");
         }
         x1 = variable(name, TypeA);
         return x1;
@@ -2294,9 +2287,7 @@ data_expression data_type_checker::typecheck_n(const data_expression& x, const s
           sort_expression temp;
           if (!match_sorts(TypeA, expected_sort1, temp))
           {
-            throw mcrl2::runtime_error("The type " + data::pp(TypeA) + " of constant " + core::pp(name)
-                                       + " is incompatible with " + data::pp(expected_sort1) + " (typechecking " +
-                                       data::pp(x1) + ").");
+            throw mcrl2::runtime_error("The type " + data::pp(TypeA) + " of constant " + core::pp(name) + " is incompatible with " + data::pp(expected_sort1) + " (typechecking " + data::pp(x1) + ").");
           }
           x1 = data::function_symbol(name, TypeA);
           return x1;
@@ -2310,8 +2301,7 @@ data_expression data_type_checker::typecheck_n(const data_expression& x, const s
             ParList = j->second;
             if (ParList.size() == 1)
             {
-              sort_expression Type1 = ParList.front();
-              x1 = function_symbol(name, Type1);
+              x1 = function_symbol(name, ParList.front());
               return x1;
             }
             else
@@ -2334,10 +2324,8 @@ data_expression data_type_checker::typecheck_n(const data_expression& x, const s
     }
     else
     {
-      const std::map<core::identifier_string, sort_expression_list>::const_iterator j_context = user_functions.find(
-              name);
-      const std::map<core::identifier_string, sort_expression_list>::const_iterator j_gssystem = system_functions.find(
-              name);
+      auto j_context = user_functions.find(name);
+      auto j_gssystem = system_functions.find(name);
 
       if (j_context == user_functions.end())
       {
@@ -2349,9 +2337,7 @@ data_expression data_type_checker::typecheck_n(const data_expression& x, const s
         {
           if (parameter_count != std::string::npos)
           {
-            throw mcrl2::runtime_error(
-                    "Unknown operation " + core::pp(name) + " with " + std::to_string(parameter_count) + " parameter" +
-                    ((parameter_count != 1) ? "s." : "."));
+            throw mcrl2::runtime_error("Unknown operation " + core::pp(name) + " with " + std::to_string(parameter_count) + " parameter" + ((parameter_count != 1) ? "s." : "."));
           }
           else
           {
@@ -2390,7 +2376,7 @@ data_expression data_type_checker::typecheck_n(const data_expression& x, const s
           }
           new_sorts.push_front(Par);
         }
-        ParList = reverse(new_sorts);
+        ParList = atermpp::reverse(new_sorts);
       }
 
       if (!ParList.empty())
@@ -2419,7 +2405,7 @@ data_expression data_type_checker::typecheck_n(const data_expression& x, const s
           // Ignore the error. Just do not add the type to NewParList
         }
       }
-      new_sorts = reverse(new_sorts);
+      new_sorts = atermpp::reverse(new_sorts);
 
       if (new_sorts.empty())
       {
@@ -2439,7 +2425,7 @@ data_expression data_type_checker::typecheck_n(const data_expression& x, const s
             new_sorts = detail::insert_sort_unique(new_sorts, result);
           }
         }
-        new_sorts = reverse(new_sorts);
+        new_sorts = atermpp::reverse(new_sorts);
         if (new_sorts.size() > 1)
         {
           new_sorts = sort_expression_list({new_sorts.front()});
@@ -2462,7 +2448,7 @@ data_expression data_type_checker::typecheck_n(const data_expression& x, const s
             new_sorts = detail::insert_sort_unique(new_sorts, result);
           }
         }
-        new_sorts = reverse(new_sorts);
+        new_sorts = atermpp::reverse(new_sorts);
         if (new_sorts.size() > 1)
         {
           new_sorts = sort_expression_list({new_sorts.front()});
@@ -2727,14 +2713,12 @@ data_expression data_type_checker::typecheck_abstraction(const data_expression& 
   throw mcrl2::runtime_error("Internal type checking error: " + data::pp(x) + " does not match any type checking case.");
 }
 
-data_expression data_type_checker::typecheck_where_clause(const data_expression& x, const sort_expression& expected_sort,
+data_expression data_type_checker::typecheck_where_clause(const where_clause& x, const sort_expression& expected_sort,
                                              const detail::variable_context& declared_variables, bool strictly_ambiguous, bool warn_upcasting, bool print_cast_error) const
 {
-  data_expression x1 = x;
-  const auto& x_ = atermpp::down_cast<const where_clause>(x1);
   variable_list WhereVarList;
   assignment_list NewWhereList;
-  for (auto declaration: x_.declarations())
+  for (const auto& declaration: x.declarations())
   {
     data_expression WhereTerm;
     variable NewWhereVar;
@@ -2757,38 +2741,35 @@ data_expression data_type_checker::typecheck_where_clause(const data_expression&
     WhereVarList.push_front(NewWhereVar);
     NewWhereList.push_front(assignment(NewWhereVar, WhereTerm));
   }
-  NewWhereList = reverse(NewWhereList);
+  NewWhereList = atermpp::reverse(NewWhereList);
 
-  variable_list where_variables = reverse(WhereVarList);
+  variable_list where_variables = atermpp::reverse(WhereVarList);
   try
   {
     (*this)(where_variables, declared_variables);
   }
   catch (mcrl2::runtime_error& e)
   {
-    throw mcrl2::runtime_error(std::string(e.what()) + "\nError occurred while typechecking the where expression " + data::pp(x1) + ".");
+    throw mcrl2::runtime_error(std::string(e.what()) + "\nError occurred while typechecking the where expression " + data::pp(x) + ".");
   }
 
   detail::variable_context declared_variables_copy(declared_variables);
   declared_variables_copy.add_context_variables(where_variables);
 
-  data_expression body = x_.body();
+  data_expression body = x.body();
   body = typecheck(body, expected_sort, declared_variables_copy, strictly_ambiguous, warn_upcasting, print_cast_error);
   sort_expression NewType = body.sort();
   return where_clause(body, NewWhereList);
 }
 
-data_expression data_type_checker::typecheck_application(const data_expression& x, const sort_expression& expected_sort,
+data_expression data_type_checker::typecheck_application(const application& x, const sort_expression& expected_sort,
                                                          const detail::variable_context& declared_variables, bool strictly_ambiguous, bool warn_upcasting, bool print_cast_error) const
 {
-  data_expression x1 = x;
-
   //arguments
-  const auto& x_ = atermpp::down_cast<application>(x1);
-  std::size_t parameter_count = x_.size();
+  std::size_t parameter_count = x.size();
 
   //The following is needed to check enumerations
-  const data_expression& Arg0 = x_.head();
+  const data_expression& Arg0 = x.head();
   if (data::is_function_symbol(Arg0) || data::is_untyped_identifier(Arg0))
   {
     core::identifier_string Name = is_function_symbol(Arg0) ? atermpp::down_cast<function_symbol>(Arg0).name() : atermpp::down_cast<untyped_identifier>(Arg0).name();
@@ -2797,13 +2778,13 @@ data_expression data_type_checker::typecheck_application(const data_expression& 
       sort_expression Type;
       if (!UnList(expected_sort, Type))
       {
-        throw mcrl2::runtime_error("It is not possible to cast list to " + data::pp(expected_sort) + " (while typechecking " + data::pp(data_expression_list(x_.begin(), x_.end())) + ").");
+        throw mcrl2::runtime_error("It is not possible to cast list to " + data::pp(expected_sort) + " (while typechecking " + data::pp(data_expression_list(x.begin(), x.end())) + ").");
       }
 
       //First time to determine the common type only!
       data_expression_list NewArguments;
       bool Type_is_stable = true;
-      for (data_expression Argument: x_)
+      for (data_expression Argument: x)
       {
         sort_expression Type0;
         try
@@ -2828,7 +2809,7 @@ data_expression data_type_checker::typecheck_application(const data_expression& 
       if (!Type_is_stable)
       {
         NewArguments = data_expression_list();
-        for (data_expression arg: x_)
+        for (data_expression arg: x)
         {
           arg = typecheck(arg, Type, declared_variables, strictly_ambiguous, warn_upcasting, print_cast_error);
           sort_expression Type0 = arg.sort();
@@ -2838,8 +2819,7 @@ data_expression data_type_checker::typecheck_application(const data_expression& 
       }
 
       Type = sort_list::list(Type);
-      x1 = sort_list::list_enumeration(Type, data_expression_list(atermpp::reverse(NewArguments)));
-      return x1;
+      return sort_list::list_enumeration(Type, data_expression_list(atermpp::reverse(NewArguments)));
     }
 
     if (Name == sort_set::set_enumeration_name())
@@ -2847,13 +2827,13 @@ data_expression data_type_checker::typecheck_application(const data_expression& 
       sort_expression Type;
       if (!UnFSet(expected_sort, Type))
       {
-        throw mcrl2::runtime_error("It is not possible to cast set to " + data::pp(expected_sort) + " (while typechecking " + data::pp(data_expression_list(x_.begin(), x_.end())) + ").");
+        throw mcrl2::runtime_error("It is not possible to cast set to " + data::pp(expected_sort) + " (while typechecking " + data::pp(data_expression_list(x.begin(), x.end())) + ").");
       }
 
       //First time to determine the common type only (which will be NewType)!
       bool NewTypeDefined = false;
       sort_expression NewType;
-      for (auto i = x_.begin(); i != x_.end(); ++i)
+      for (auto i = x.begin(); i != x.end(); ++i)
       {
         data_expression Argument = *i;
         sort_expression Type0;
@@ -2893,7 +2873,7 @@ data_expression data_type_checker::typecheck_application(const data_expression& 
 
       //Second time to do the real work.
       data_expression_list NewArguments;
-      for (auto i = x_.begin(); i != x_.end(); ++i)
+      for (auto i = x.begin(); i != x.end(); ++i)
       {
         data_expression Argument = *i;
         sort_expression Type0;
@@ -2909,27 +2889,26 @@ data_expression data_type_checker::typecheck_application(const data_expression& 
         NewArguments.push_front(Argument);
         Type = Type0;
       }
-      x1 = sort_set::set_enumeration(sort_expression(Type), data_expression_list(atermpp::reverse(NewArguments)));
+      data_expression x2 = sort_set::set_enumeration(sort_expression(Type), data_expression_list(atermpp::reverse(NewArguments)));
       if (sort_set::is_set(expected_sort))
       {
-        x1 = sort_set::constructor(Type, sort_set::false_function(Type), x1);
-        return x1;
+        return sort_set::constructor(Type, sort_set::false_function(Type), x2);
       }
       // return sort_fset::fset(Type));
-      return x1;
+      return x2;
     }
     if (Name == sort_bag::bag_enumeration_name())
     {
       sort_expression Type;
       if (!UnFBag(expected_sort, Type))
       {
-        throw mcrl2::runtime_error("Impossible to cast bag to " + data::pp(expected_sort) + "(while typechecking " + data::pp(data_expression_list(x_.begin(), x_.end())) + ").");
+        throw mcrl2::runtime_error("Impossible to cast bag to " + data::pp(expected_sort) + "(while typechecking " + data::pp(data_expression_list(x.begin(), x.end())) + ").");
       }
 
       //First time to determine the common type only!
       sort_expression NewType;
       bool NewTypeDefined = false;
-      for (application::const_iterator i = x_.begin(); i != x_.end(); ++i)
+      for (application::const_iterator i = x.begin(); i != x.end(); ++i)
       {
         data_expression Argument0 = *i;
         ++i;
@@ -2986,7 +2965,7 @@ data_expression data_type_checker::typecheck_application(const data_expression& 
 
       //Second time to do the real work.
       data_expression_list NewArguments;
-      for (auto i = x_.begin(); i != x_.end(); ++i)
+      for (auto i = x.begin(); i != x.end(); ++i)
       {
         data_expression Argument0 = *i;
         ++i;
@@ -3030,21 +3009,20 @@ data_expression data_type_checker::typecheck_application(const data_expression& 
         NewArguments.push_front(Argument1);
         Type = Type0;
       }
-      x1 = sort_bag::bag_enumeration(Type, data_expression_list(reverse(NewArguments)));
+      data_expression x2 = sort_bag::bag_enumeration(Type, data_expression_list(reverse(NewArguments)));
       if (sort_bag::is_bag(expected_sort))
       {
-        x1 = sort_bag::constructor(Type, sort_bag::zero_function(Type), x1);
+        return sort_bag::constructor(Type, sort_bag::zero_function(Type), x2);
         // return check_result(sort_bag::bag(Type), x1);
-        return x1;
       }
       //return check_result(sort_fbag::fbag(Type), x1);
-      return x1;
+      return x2;
     }
   }
   sort_expression_list NewArgumentTypes;
   data_expression_list NewArguments;
   sort_expression_list argument_sorts;
-  for (auto i = x_.begin(); i != x_.end(); ++i)
+  for (auto i = x.begin(); i != x.end(); ++i)
   {
     data_expression Arg = *i;
     Arg = typecheck(Arg, data::untyped_sort(), declared_variables, false, warn_upcasting, print_cast_error);
@@ -3053,11 +3031,11 @@ data_expression data_type_checker::typecheck_application(const data_expression& 
     NewArguments.push_front(Arg);
     NewArgumentTypes.push_front(Type);
   }
-  data_expression_list Arguments = reverse(NewArguments);
-  sort_expression_list ArgumentTypes = reverse(NewArgumentTypes);
+  data_expression_list Arguments = atermpp::reverse(NewArguments);
+  sort_expression_list ArgumentTypes = atermpp::reverse(NewArgumentTypes);
 
   //function
-  data_expression head = x_.head();
+  data_expression head = x.head();
   sort_expression NewType;
   try
   {
@@ -3086,7 +3064,7 @@ data_expression data_type_checker::typecheck_application(const data_expression& 
       throw mcrl2::runtime_error("Need argumens of sorts " + data::pp(NeededArgumentTypes) +
                                  " which does not match the number of provided arguments "
                                  + data::pp(Arguments) + " (while typechecking "
-                                 + data::pp(x1) + ").");
+                                 + data::pp(x) + ").");
     }
     //arguments again
     sort_expression_list NewArgumentTypes;
@@ -3131,15 +3109,15 @@ data_expression data_type_checker::typecheck_application(const data_expression& 
         {
           throw mcrl2::runtime_error(
             std::string(e.what()) + "\nRequired type " + data::pp(NeededType) + " does not match possible type "
-            + data::pp(Type) + " (while typechecking " + data::pp(Arg) + " in " + data::pp(x1) + ").");
+            + data::pp(Type) + " (while typechecking " + data::pp(Arg) + " in " + data::pp(x) + ").");
         }
         Type = NewArgType;
       }
       NewArguments.push_front(Arg);
       NewArgumentTypes.push_front(Type);
     }
-    Arguments = reverse(NewArguments);
-    ArgumentTypes = reverse(NewArgumentTypes);
+    Arguments = atermpp::reverse(NewArguments);
+    ArgumentTypes = atermpp::reverse(NewArgumentTypes);
   }
 
   //the function again
@@ -3199,7 +3177,7 @@ data_expression data_type_checker::typecheck_application(const data_expression& 
         {
           throw mcrl2::runtime_error(
             std::string(e.what()) + "\nNeeded type " + data::pp(NeededType) + " does not match possible type "
-            + data::pp(Type) + " (while typechecking " + data::pp(Arg) + " in " + data::pp(x1) + ").");
+            + data::pp(Type) + " (while typechecking " + data::pp(Arg) + " in " + data::pp(x) + ").");
         }
         Type = NewArgType;
       }
@@ -3207,29 +3185,29 @@ data_expression data_type_checker::typecheck_application(const data_expression& 
       NewArguments.push_front(Arg);
       NewArgumentTypes.push_front(Type);
     }
-    Arguments = reverse(NewArguments);
-    ArgumentTypes = reverse(NewArgumentTypes);
+    Arguments = atermpp::reverse(NewArguments);
+    ArgumentTypes = atermpp::reverse(NewArgumentTypes);
   }
 
-  x1 = application(head, Arguments);
+  data_expression x2 = application(head, Arguments);
 
   if (is_function_sort(normalize_sort(NewType)))
   {
     // return atermpp::down_cast<function_sort>(normalize_sort(NewType)).codomain();
-    return x1;
+    return x2;
   }
 
   sort_expression temp_type;
   if (!UnArrowProd(ArgumentTypes, NewType, temp_type))
   {
-    throw mcrl2::runtime_error("Fail to properly type " + data::pp(x1) + ".");
+    throw mcrl2::runtime_error("Fail to properly type " + data::pp(x2) + ".");
   }
   if (detail::has_unknown(temp_type))
   {
-    throw mcrl2::runtime_error("Fail to properly type " + data::pp(x1) + ".");
+    throw mcrl2::runtime_error("Fail to properly type " + data::pp(x2) + ".");
   }
   // return check_result(temp_type, x1);
-  return x1;
+  return x2;
 }
 
 data_expression data_type_checker::typecheck_identifier_function_symbol_variable(const data_expression& x, const sort_expression& expected_sort,
@@ -3241,19 +3219,19 @@ data_expression data_type_checker::typecheck_identifier_function_symbol_variable
                                  atermpp::down_cast<variable>(x1).name();
   if (utilities::is_numeric_string(name.function().name()))
   {
-    sort_expression Sort = sort_int::int_();
+    sort_expression sort = sort_int::int_();
     if (detail::IsPos(name))
     {
-      Sort = sort_pos::pos();
+      sort = sort_pos::pos();
     }
     else if (detail::IsNat(name))
     {
-      Sort = sort_nat::nat();
+      sort = sort_nat::nat();
     }
-    x1 = data::function_symbol(name, Sort);
+    x1 = data::function_symbol(name, sort);
 
     sort_expression temp;
-    if (match_sorts(Sort, expected_sort, temp))
+    if (match_sorts(sort, expected_sort, temp))
     {
       // return check_result(Sort, x1);
       return x1;
@@ -3262,7 +3240,7 @@ data_expression data_type_checker::typecheck_identifier_function_symbol_variable
     //upcasting
     try
     {
-      x1 = upcast_numeric_type(x1, Sort, expected_sort, declared_variables, strictly_ambiguous, warn_upcasting, print_cast_error);
+      x1 = upcast_numeric_type(x1, sort, expected_sort, declared_variables, strictly_ambiguous, warn_upcasting, print_cast_error);
     }
     catch (mcrl2::runtime_error& e)
     {
@@ -3272,16 +3250,16 @@ data_expression data_type_checker::typecheck_identifier_function_symbol_variable
     return x1;
   }
 
-  const std::map<core::identifier_string, sort_expression>::const_iterator it = declared_variables.context().find(name);
+  auto it = declared_variables.context().find(name);
   if (it != declared_variables.context().end())
   {
-    sort_expression Type = normalize_sort(it->second);
-    x1 = variable(name, Type);
+    sort_expression sort = normalize_sort(it->second);
+    x1 = variable(name, sort);
 
-    sort_expression NewType;
-    if (match_sorts(Type, expected_sort, NewType))
+    sort_expression new_sort;
+    if (match_sorts(sort, expected_sort, new_sort))
     {
-      Type = NewType;
+      sort = new_sort;
     }
     else
     {
@@ -3289,7 +3267,7 @@ data_expression data_type_checker::typecheck_identifier_function_symbol_variable
       sort_expression CastedNewType;
       try
       {
-        x1 = upcast_numeric_type(x1, Type, expected_sort, declared_variables, strictly_ambiguous, warn_upcasting, print_cast_error);
+        x1 = upcast_numeric_type(x1, sort, expected_sort, declared_variables, strictly_ambiguous, warn_upcasting, print_cast_error);
       }
       catch (mcrl2::runtime_error& e)
       {
@@ -3302,7 +3280,7 @@ data_expression data_type_checker::typecheck_identifier_function_symbol_variable
           throw e;
         }
       }
-      Type = CastedNewType;
+      sort = CastedNewType;
     }
 
     // return check_result(Type, x1);
@@ -3312,21 +3290,21 @@ data_expression data_type_checker::typecheck_identifier_function_symbol_variable
   auto i = user_constants.find(name);
   if (i != user_constants.end())
   {
-    sort_expression Type = i->second;
-    sort_expression NewType;
-    if (match_sorts(Type, expected_sort, NewType))
+    sort_expression sort = i->second;
+    sort_expression new_sort;
+    if (match_sorts(sort, expected_sort, new_sort))
     {
-      Type = NewType;
-      return data::function_symbol(name, Type);
+      sort = new_sort;
+      return data::function_symbol(name, sort);
       // return check_result(Type, x1);
     }
     else
     {
       // The type cannot be unified. Try upcasting the type.
-      x1 = data::function_symbol(name, Type);
+      x1 = data::function_symbol(name, sort);
       try
       {
-        return upcast_numeric_type(x1, Type, expected_sort, declared_variables, strictly_ambiguous, warn_upcasting, print_cast_error);
+        return upcast_numeric_type(x1, sort, expected_sort, declared_variables, strictly_ambiguous, warn_upcasting, print_cast_error);
       }
       catch (mcrl2::runtime_error& e)
       {
@@ -3338,22 +3316,22 @@ data_expression data_type_checker::typecheck_identifier_function_symbol_variable
   auto j = system_constants.find(name);
   if (j != system_constants.end())
   {
-    sort_expression_list TypeList = j->second;
+    sort_expression_list sorts = j->second;
     sort_expression_list NewParList;
-    for (auto Type : TypeList)
+    for (const auto& sort: sorts)
     {
       sort_expression result;
-      if (match_sorts(Type, expected_sort, result))
+      if (match_sorts(sort, expected_sort, result))
       {
         x1 = data::function_symbol(name, result);
         NewParList.push_front(result);
       }
     }
-    sort_expression_list ParList = reverse(NewParList);
+    sort_expression_list ParList = atermpp::reverse(NewParList);
     if (ParList.empty())
     {
       // Try to do the matching again with relaxed typing.
-      for (auto Type : TypeList)
+      for (auto Type : sorts)
       {
         if (is_untyped_identifier(x1))
         {
@@ -3367,7 +3345,7 @@ data_expression data_type_checker::typecheck_identifier_function_symbol_variable
           NewParList.push_front(result);
         }
       }
-      ParList = reverse(NewParList);
+      ParList = atermpp::reverse(NewParList);
     }
 
     if (ParList.empty())
@@ -3440,10 +3418,120 @@ data_expression data_type_checker::typecheck_identifier_function_symbol_variable
   }
   else
   {
-    return typecheck_n(x1, expected_sort, declared_variables, strictly_ambiguous, std::string::npos, warn_upcasting,
-                       print_cast_error);
+    return typecheck_n(x1, expected_sort, declared_variables, strictly_ambiguous, std::string::npos, warn_upcasting, print_cast_error);
   }
-  throw mcrl2::runtime_error("Internal type checking error: " + data::pp(x) + " does not match any type checking case.");
+}
+
+inline
+const structured_sort& find_structured_sort(const sort_expression& x, const sort_specification& sortspec)
+{
+  for (const auto& p: sortspec.sort_alias_map())
+  {
+    if (p.second == x && is_structured_sort(p.first))
+    {
+      return atermpp::down_cast<structured_sort>(p.first);
+    }
+  }
+  throw mcrl2::runtime_error("Could not find a structured sort corresponding to " + data::pp(x));
+}
+
+inline
+bool match_structured_sort_constructor(const structured_sort_constructor& x, const std::vector<core::identifier_string>& names)
+{
+  std::set<core::identifier_string> argument_names;
+  for (const structured_sort_constructor_argument& arg: x.arguments())
+  {
+    argument_names.insert(arg.name());
+  }
+  for (const core::identifier_string& name: names)
+  {
+    if (argument_names.find(name) == argument_names.end())
+    {
+      return false;
+    }
+  }
+  return true;
+}
+
+// makes assignments of the shape arg = arg(name), for each constructor argument arg
+inline
+data::untyped_identifier_assignment_list make_constructor_assignments(const structured_sort_constructor& x, const core::identifier_string& name)
+{
+  std::vector<untyped_identifier_assignment> assignments;
+  for (const structured_sort_constructor_argument& arg: x.arguments())
+  {
+    assignments.emplace_back(arg.name(), application(untyped_identifier(arg.name()), data_expression_list({ untyped_identifier(name) })));
+  }
+  return data::untyped_identifier_assignment_list(assignments.begin(), assignments.end());
+}
+
+data_expression data_type_checker::typecheck_untyped_variable_assignment(const untyped_variable_assignment& x,
+                                                                         const sort_expression& expected_sort,
+                                                                         const detail::variable_context& declared_variables,
+                                                                         bool strictly_ambiguous, bool warn_upcasting,
+                                                                         bool print_cast_error) const
+{
+  m_checking_untyped_variable_assignment = true;
+
+  // typecheck x.name() as a variable v, to obtain the corresponding sort x_sort
+  sort_expression x_sort = typecheck_identifier_function_symbol_variable(untyped_identifier(x.name()), data::untyped_sort(), declared_variables, strictly_ambiguous, warn_upcasting, print_cast_error).sort();
+  if (x_sort == untyped_sort())
+  {
+    throw mcrl2::runtime_error("Could not find a sort corresponding to the expression " + data::pp(x));
+  }
+
+  // find the structured sort S corresponding to x_sort
+  const structured_sort& S = find_structured_sort(x_sort, m_sort_specification);
+
+  // the left hand sides of the assignments in x
+  std::vector<core::identifier_string> left_hand_sides;
+  for (const untyped_identifier_assignment& a: x.assignments())
+  {
+    left_hand_sides.push_back(a.lhs());
+  }
+
+  // find the unique structured sort x_constructor that matches x
+  std::vector<structured_sort_constructor> matches;
+  for (const structured_sort_constructor& constructor: S.constructors())
+  {
+    if (match_structured_sort_constructor(constructor, left_hand_sides))
+    {
+      matches.push_back(constructor);
+    }
+  }
+  if (matches.empty())
+  {
+    throw mcrl2::runtime_error("Could not find a structored sort constructor matching the assignments " + core::detail::print_list(x.assignments()));
+  }
+  if (matches.size() > 1)
+  {
+    throw mcrl2::runtime_error("Found multiple structored sorts matching the assignments " + core::detail::print_list(x.assignments()));
+  }
+  const structured_sort_constructor& x_constructor = matches.front();
+
+  // create an application x1 that is equivalent to x
+  std::vector<data_expression> arguments;
+  for (const structured_sort_constructor_argument& arg: x_constructor.arguments())
+  {
+    bool found = false;
+    for (const untyped_identifier_assignment& a: x.assignments())
+    {
+      if (a.lhs() == arg.name())
+      {
+        found = true;
+        arguments.push_back(where_clause(a.rhs(), make_constructor_assignments(x_constructor, x.name())));
+      }
+    }
+    if (!found)
+    {
+      arguments.push_back(application(untyped_identifier(arg.name()), data_expression_list({ untyped_identifier(x.name()) })));
+    }
+  }
+  application x1(untyped_identifier(x_constructor.name()), data_expression_list(arguments.begin(), arguments.end()));
+
+  auto result = typecheck(x1, untyped_sort(), declared_variables, strictly_ambiguous, warn_upcasting, print_cast_error);
+  m_checking_untyped_variable_assignment = false;
+  return result;
 }
 
 data_expression data_type_checker::typecheck(const data_expression& x, const sort_expression& expected_sort,
@@ -3455,15 +3543,22 @@ data_expression data_type_checker::typecheck(const data_expression& x, const sor
   }
   else if (is_where_clause(x))
   {
-    return typecheck_where_clause(x, expected_sort, declared_variables, strictly_ambiguous, warn_upcasting, print_cast_error);
+    const auto& x_ = atermpp::down_cast<where_clause>(x);
+    return typecheck_where_clause(x_, expected_sort, declared_variables, strictly_ambiguous, warn_upcasting, print_cast_error);
   }
   else if (is_application(x))
   {
-    return typecheck_application(x, expected_sort, declared_variables, strictly_ambiguous, warn_upcasting, print_cast_error);
+    const auto& x_ = atermpp::down_cast<application>(x);
+    return typecheck_application(x_, expected_sort, declared_variables, strictly_ambiguous, warn_upcasting, print_cast_error);
   }
-  else if (data::is_untyped_identifier(x) || data::is_function_symbol(x) || is_variable(x))
+  else if (is_untyped_identifier(x) || data::is_function_symbol(x) || is_variable(x))
   {
     return typecheck_identifier_function_symbol_variable(x, expected_sort, declared_variables, strictly_ambiguous, warn_upcasting, print_cast_error);
+  }
+  else if (is_untyped_variable_assignment(x))
+  {
+    const auto& x_ = atermpp::down_cast<untyped_variable_assignment>(x);
+    return typecheck_untyped_variable_assignment(x_, expected_sort, declared_variables, strictly_ambiguous, warn_upcasting, print_cast_error);
   }
   throw mcrl2::runtime_error("Internal type checking error: " + data::pp(x) + " does not match any type checking case.");
 }
@@ -4145,30 +4240,29 @@ data_type_checker::operator()(const data_expression& x, const detail::variable_c
 void data_type_checker::operator()(const variable& v, const detail::variable_context& context_variables) const
 {
   // First check whether the variable name clashes with a system or user defined function or constant.
-  const std::map<core::identifier_string, sort_expression_list>::const_iterator i1 = system_constants.find(v.name());
+  auto i1 = system_constants.find(v.name());
   if (i1 != system_constants.end())
   {
     throw mcrl2::runtime_error("The variable " + core::pp(v.name()) + ":" + data::pp(v.sort()) +
                                " clashes with the system defined constant " + core::pp(i1->first) + ":" +
                                data::pp(i1->second.front()) + ".");
   }
-  const std::map<core::identifier_string, sort_expression_list>::const_iterator i2 = system_functions.find(
-          v.name());
+  auto i2 = system_functions.find(v.name());
   if (i2 != system_functions.end())
   {
     throw mcrl2::runtime_error("The variable " + core::pp(v.name()) + ":" + data::pp(v.sort()) +
                                " clashes with the system defined function " + core::pp(i2->first) + ":" +
                                data::pp(i2->second.front()) + ".");
   }
-  const std::map<core::identifier_string, sort_expression>::const_iterator i3 = user_constants.find(v.name());
+  auto i3 = user_constants.find(v.name());
   if (i3 != user_constants.end())
   {
     throw mcrl2::runtime_error("The variable " + core::pp(v.name()) + ":" + data::pp(v.sort()) +
                                " clashes with the user defined constant " + core::pp(i3->first) + ":" +
                                data::pp(i3->second) + ".");
   }
-  const std::map<core::identifier_string, sort_expression_list>::const_iterator i4 = user_functions.find(v.name());
-  if (i4 != user_functions.end())
+  auto i4 = user_functions.find(v.name());
+  if (i4 != user_functions.end() && !m_checking_untyped_variable_assignment)
   {
     throw mcrl2::runtime_error("The variable " + core::pp(v.name()) + ":" + data::pp(v.sort()) +
                                " clashes with the user defined function " + core::pp(i4->first) + ":" +

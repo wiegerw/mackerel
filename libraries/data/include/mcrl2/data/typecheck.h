@@ -30,6 +30,7 @@ class data_type_checker : public sort_type_checker
     std::map<core::identifier_string, sort_expression> user_constants;          //name -> sort expression
     std::map<core::identifier_string, sort_expression_list> user_functions;     //name -> Set(sort expression)
     data_specification type_checked_data_spec;
+    mutable bool m_checking_untyped_variable_assignment = false;
 
   public:
     /** \brief     make a data type checker.
@@ -75,8 +76,7 @@ class data_type_checker : public sort_type_checker
 
     void read_sort(const sort_expression& x);
 
-    void
-    read_constructors_and_mappings(const function_symbol_vector& constructors, const function_symbol_vector& mappings,
+    void read_constructors_and_mappings(const function_symbol_vector& constructors, const function_symbol_vector& mappings,
                                    const function_symbol_vector& normalized_constructors);
 
     void add_function(const data::function_symbol& f, const std::string& msg, bool allow_double_decls = false);
@@ -106,17 +106,21 @@ class data_type_checker : public sort_type_checker
                               const detail::variable_context& declared_variables, bool strictly_ambiguous = true,
                               bool warn_upcasting = false, bool print_cast_error = true) const;
 
-    data_expression typecheck_where_clause(const data_expression& x, const sort_expression& expected_sort,
+    data_expression typecheck_where_clause(const where_clause& x, const sort_expression& expected_sort,
                                           const detail::variable_context& declared_variables, bool strictly_ambiguous = true,
                                           bool warn_upcasting = false, bool print_cast_error = true) const;
 
-    data_expression typecheck_application(const data_expression& x, const sort_expression& expected_sort,
+    data_expression typecheck_application(const application& x, const sort_expression& expected_sort,
                                           const detail::variable_context& declared_variables, bool strictly_ambiguous = true,
                                           bool warn_upcasting = false, bool print_cast_error = true) const;
 
     data_expression typecheck_identifier_function_symbol_variable(const data_expression& x, const sort_expression& expected_sort,
                                           const detail::variable_context& declared_variables, bool strictly_ambiguous = true,
                                           bool warn_upcasting = false, bool print_cast_error = true) const;
+
+    data_expression typecheck_untyped_variable_assignment(const untyped_variable_assignment& x, const sort_expression& expected_sort,
+                                                          const detail::variable_context& declared_variables, bool strictly_ambiguous = true,
+                                                          bool warn_upcasting = false, bool print_cast_error = true) const;
 
     //Type checks and transforms x replacing Unknown datatype with other ones.
     //Returns the type of the term which should match expected_sort.

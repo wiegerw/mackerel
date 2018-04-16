@@ -91,6 +91,9 @@ inline void swap(untyped_variable_assignment& t1, untyped_variable_assignment& t
 }
 //--- end generated class untyped_variable_assignment ---//
 
+// template function overloads
+std::string pp(const data::untyped_variable_assignment& x);
+
 } // namespace data
 
 } // namespace mcrl2
