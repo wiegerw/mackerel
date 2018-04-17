@@ -1,0 +1,17 @@
+project mcrl3linearize
+   : requirements
+       <library>/aterm//aterm
+       <library>/core//core
+       <library>/data//data
+       <library>/lps//lps
+       <library>/process//process
+       <library>/utilities//utilities
+       <library>/dparser//dparser
+   ;
+
+exe mcrl3linearize
+  :
+    mcrl3linearize.cpp
+  ;
+
+install dist : mcrl3linearize : <variant>debug:<location>../../install_debug/bin <variant>release:<location>../../install/bin ;

@@ -11,4 +11,4 @@ This module contains some extensions to the [mCRL2](http://mcrl2.org) toolset.
 
 * Process specifications may be unguarded
 * Structured sorts have update syntax (finished)
-* There is a new linearization tool (work in progress)
+* There is a new linearization tool mcrl3linearize (work in progress)

@@ -42,4 +42,5 @@ add_subdirectory(libraries/process)
 add_subdirectory(libraries/utilities)
 
 add_subdirectory(tools/mcrl32lps)
+add_subdirectory(tools/mcrl3linearize)
 add_subdirectory(tools/mcrl3transform)
