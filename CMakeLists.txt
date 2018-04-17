@@ -11,10 +11,9 @@ if (WIN32)
   endif(MSVC)
 endif (WIN32)
 
-if(CMAKE_COMPILER_IS_GNUCXX)
-  add_definitions(-std=c++14)
-  add_definitions(-fPIC)
-endif(CMAKE_COMPILER_IS_GNUCXX)
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 include_directories(3rd-party/dparser)
 include_directories(build/workarounds)
