@@ -88,7 +88,7 @@ sort_expression_list variable_list_sorts(const variable_list& variables)
 inline
 bool has_unknown(const sort_expression& x)
 {
-  if (data::is_untyped_sort(data::sort_expression(x)))
+  if (data::is_untyped_sort(x))
   {
     return true;
   }
@@ -588,7 +588,7 @@ bool data::data_type_checker::UnFSet(const sort_expression& x, sort_expression& 
     const auto& mps = atermpp::down_cast<untyped_possible_sorts>(x);
     for (const sort_expression& sort: mps.sorts())
     {
-      if (sort_fset::is_fset(sort_expression(sort)) || (sort_set::is_set(sort_expression(sort))))
+      if (sort_fset::is_fset(sort) || (sort_set::is_set(sort)))
       {
         sorts.push_front(atermpp::down_cast<const container_sort>(sort).element_sort());
       }
@@ -606,7 +606,7 @@ bool data::data_type_checker::UnFSet(const sort_expression& x, sort_expression& 
 
 bool data::data_type_checker::UnFBag(const sort_expression& x, sort_expression& result) const
 {
-  if (sort_fbag::is_fbag(sort_expression(x)) || (sort_bag::is_bag(sort_expression(x))))
+  if (sort_fbag::is_fbag(x) || (sort_bag::is_bag(x)))
   {
     result = atermpp::down_cast<const container_sort>(x).element_sort();
     return true;
@@ -622,7 +622,8 @@ bool data::data_type_checker::UnFBag(const sort_expression& x, sort_expression& 
     const auto& x_ = atermpp::down_cast<untyped_possible_sorts>(x);
     for (const sort_expression& sort: x_.sorts())
     {
-      if (sort_fbag::is_fbag(sort_expression(sort)) || (sort_fbag::is_fbag(sort)))
+      // if (sort_fbag::is_fbag(sort) || (sort_fbag::is_fbag(sort))) // Is this some kind of typo???
+      if (sort_fbag::is_fbag(sort))
       {
         sorts.push_front(atermpp::down_cast<container_sort>(sort).element_sort());
       }
@@ -858,7 +859,7 @@ bool data_type_checker::match_cons(const function_sort& type, sort_expression& r
   {
     arg2 = normalize_sort(arg2);
   }
-  if (!sort_list::is_list(sort_expression(arg2)))
+  if (!sort_list::is_list(arg2))
   {
     return false;
   }
@@ -875,7 +876,7 @@ bool data_type_checker::match_cons(const function_sort& type, sort_expression& r
     return false;
   }
 
-  result = function_sort({codomain, sort_list::list(sort_expression(codomain))}, sort_list::list(sort_expression(codomain)));
+  result = function_sort({ codomain, sort_list::list(codomain) }, sort_list::list(codomain));
   return true;
 }
 
@@ -886,7 +887,7 @@ bool data_type_checker::match_snoc(const function_sort& type, sort_expression& r
   {
     codomain = normalize_sort(codomain);
   }
-  if (!sort_list::is_list(sort_expression(codomain)))
+  if (!sort_list::is_list(codomain))
   {
     return false;
   }
@@ -901,7 +902,7 @@ bool data_type_checker::match_snoc(const function_sort& type, sort_expression& r
   {
     arg1 = normalize_sort(arg1);
   }
-  if (!sort_list::is_list(sort_expression(arg1)))
+  if (!sort_list::is_list(arg1))
   {
     return false;
   }
@@ -932,7 +933,7 @@ bool data_type_checker::match_concat(const function_sort& type, sort_expression&
   {
     codomain = normalize_sort(codomain);
   }
-  if (!sort_list::is_list(sort_expression(codomain)))
+  if (!sort_list::is_list(codomain))
   {
     return false;
   }
@@ -948,7 +949,7 @@ bool data_type_checker::match_concat(const function_sort& type, sort_expression&
   {
     arg1 = normalize_sort(arg1);
   }
-  if (!sort_list::is_list(sort_expression(arg1)))
+  if (!sort_list::is_list(arg1))
   {
     return false;
   }
@@ -996,7 +997,7 @@ bool data_type_checker::match_element_at(const function_sort& type, sort_express
   {
     arg1 = normalize_sort(arg1);
   }
-  if (!sort_list::is_list(sort_expression(arg1)))
+  if (!sort_list::is_list(arg1))
   {
     return false;
   }
@@ -1039,7 +1040,7 @@ bool data_type_checker::match_head(const function_sort& type, sort_expression& r
   }
   codomain = new_result;
 
-  result = function_sort({sort_expression(sort_list::list(codomain))}, codomain);
+  result = function_sort({ sort_list::list(codomain) }, codomain);
   return true;
 }
 
@@ -1050,7 +1051,7 @@ bool data_type_checker::match_tail(const function_sort& type, sort_expression& r
   {
     codomain = normalize_sort(codomain);
   }
-  if (!sort_list::is_list(sort_expression(codomain)))
+  if (!sort_list::is_list(codomain))
   {
     return false;
   }
@@ -1078,7 +1079,7 @@ bool data_type_checker::match_tail(const function_sort& type, sort_expression& r
   }
   codomain = new_result;
 
-  result = function_sort(sort_expression_list({sort_expression(sort_list::list(codomain))}), sort_list::list(codomain));
+  result = function_sort(sort_expression_list({ sort_list::list(codomain) }), sort_list::list(codomain));
   return true;
 }
 
@@ -1090,7 +1091,7 @@ bool data_type_checker::match_set2bag(const function_sort& type, sort_expression
   {
     codomain = normalize_sort(codomain);
   }
-  if (!sort_bag::is_bag(sort_expression(codomain)))
+  if (!sort_bag::is_bag(codomain))
   {
     return false;
   }
@@ -1107,7 +1108,7 @@ bool data_type_checker::match_set2bag(const function_sort& type, sort_expression
   {
     front = normalize_sort(front);
   }
-  if (!sort_set::is_set(sort_expression(front)))
+  if (!sort_set::is_set(front))
   {
     return false;
   }
@@ -1148,7 +1149,7 @@ bool data_type_checker::match_set_constructor(const function_sort& type, sort_ex
   {
     arg1 = normalize_sort(arg1);
   }
-  if (!is_function_sort(sort_expression(arg1)))
+  if (!is_function_sort(arg1))
   {
     return false;
   }
@@ -1228,7 +1229,7 @@ bool data_type_checker::match_bag_constructor(const function_sort& type, sort_ex
   {
     arg1 = normalize_sort(arg1);
   }
-  if (!is_function_sort(sort_expression(arg1)))
+  if (!is_function_sort(arg1))
   {
     return false;
   }
@@ -1401,8 +1402,7 @@ bool data_type_checker::match_set_bag_operations(const function_sort& x, sort_ex
     result = x;
     return true;
   }
-  if (!(sort_set::is_set(sort_expression(codomain)) || sort_bag::is_bag(sort_expression(codomain)) ||
-        sort_fset::is_fset(sort_expression(codomain)) || sort_fbag::is_fbag(sort_expression(codomain))))
+  if (!(sort_set::is_set(codomain) || sort_bag::is_bag(codomain) || sort_fset::is_fset(codomain) || sort_fbag::is_fbag(codomain)))
   {
     return false;
   }
@@ -1422,8 +1422,7 @@ bool data_type_checker::match_set_bag_operations(const function_sort& x, sort_ex
     result = x;
     return true;
   }
-  if (!(sort_set::is_set(sort_expression(arg1)) || sort_bag::is_bag(sort_expression(arg1)) ||
-        sort_fset::is_fset(sort_expression(arg1)) || sort_fbag::is_fbag(sort_expression(arg1))))
+  if (!(sort_set::is_set(arg1) || sort_bag::is_bag(arg1) || sort_fset::is_fset(arg1) || sort_fbag::is_fbag(arg1)))
   {
     return false;
   }
@@ -1440,29 +1439,29 @@ bool data_type_checker::match_set_bag_operations(const function_sort& x, sort_ex
     result = x;
     return true;
   }
-  if (!(sort_set::is_set(sort_expression(arg2)) || sort_bag::is_bag(sort_expression(arg2)) ||
-        sort_fset::is_fset(sort_expression(arg2)) || sort_fbag::is_fbag(sort_expression(arg2))))
+  if (!(sort_set::is_set(arg2) || sort_bag::is_bag(arg2) ||
+        sort_fset::is_fset(arg2) || sort_fbag::is_fbag(arg2)))
   {
     return false;
   }
 
   // If one of the argumenst is an fset/fbag and the other a set/bag, lift it to match the bag/set.
-  if (sort_set::is_set(sort_expression(arg1)) && sort_fset::is_fset(sort_expression(arg2)))
+  if (sort_set::is_set(arg1) && sort_fset::is_fset(arg2))
   {
     arg2 = sort_set::set_(container_sort(arg2).element_sort());
   }
 
-  if (sort_fset::is_fset(sort_expression(arg1)) && sort_set::is_set(sort_expression(arg2)))
+  if (sort_fset::is_fset(arg1) && sort_set::is_set(arg2))
   {
     arg1 = sort_set::set_(container_sort(arg1).element_sort());
   }
 
-  if (sort_bag::is_bag(sort_expression(arg1)) && sort_fbag::is_fbag(sort_expression(arg2)))
+  if (sort_bag::is_bag(arg1) && sort_fbag::is_fbag(arg2))
   {
     arg2 = sort_bag::bag(container_sort(arg2).element_sort());
   }
 
-  if (sort_fbag::is_fbag(sort_expression(arg1)) && sort_bag::is_bag(sort_expression(arg2)))
+  if (sort_fbag::is_fbag(arg1) && sort_bag::is_bag(arg2))
   {
     arg1 = sort_bag::bag(container_sort(arg1).element_sort());
   }
@@ -1513,12 +1512,12 @@ bool data_type_checker::match_set_complement(const function_sort& type, sort_exp
     result = type;
     return true;
   }
-  if (!sort_set::is_set(sort_expression(codomain)))
+  if (!sort_set::is_set(codomain))
   {
     return false;
   }
   codomain = atermpp::down_cast<container_sort>(codomain).element_sort();
-  if (!sort_set::is_set(sort_expression(arg1)))
+  if (!sort_set::is_set(arg1))
   {
     return false;
   }
@@ -1531,8 +1530,7 @@ bool data_type_checker::match_set_complement(const function_sort& type, sort_exp
   }
   codomain = temp_result;
 
-  result = function_sort({sort_expression(sort_set::set_(sort_expression(codomain)))},
-                         sort_set::set_(sort_expression(codomain)));
+  result = function_sort({sort_set::set_(codomain)}, sort_set::set_(codomain));
   return true;
 }
 
@@ -1544,7 +1542,7 @@ bool data_type_checker::match_bag2set(const function_sort& type, sort_expression
   {
     codomain = normalize_sort(codomain);
   }
-  if (!sort_set::is_set(sort_expression(codomain)))
+  if (!sort_set::is_set(codomain))
   {
     return false;
   }
@@ -1561,7 +1559,7 @@ bool data_type_checker::match_bag2set(const function_sort& type, sort_expression
   {
     arg1 = normalize_sort(arg1);
   }
-  if (!sort_bag::is_bag(sort_expression(arg1)))
+  if (!sort_bag::is_bag(arg1))
   {
     return false;
   }
@@ -1574,7 +1572,7 @@ bool data_type_checker::match_bag2set(const function_sort& type, sort_expression
   }
   arg1 = temp_result;
 
-  result = function_sort({sort_expression(sort_bag::bag(sort_expression(arg1)))}, sort_set::set_(sort_expression(arg1)));
+  result = function_sort({ sort_bag::bag(arg1) }, sort_set::set_(arg1));
   return true;
 }
 
@@ -1600,7 +1598,7 @@ bool data_type_checker::match_bag_count(const function_sort& type, sort_expressi
   {
     arg2 = normalize_sort(arg2);
   }
-  if (!sort_bag::is_bag(sort_expression(arg2)))
+  if (!sort_bag::is_bag(arg2))
   {
     result = type;
     return true;
@@ -2247,11 +2245,11 @@ data_expression data_type_checker::typecheck_n(const data_expression& x, const s
     bool variable_ = false;
     bool TypeADefined = false;
     sort_expression TypeA;
-    auto i = declared_variables.context().find(name);
 
-    if (i != declared_variables.context().end())
+    auto i1 = declared_variables.context().find(name);
+    if (i1 != declared_variables.context().end())
     {
-      TypeA = normalize_sort(i->second);
+      TypeA = normalize_sort(i1->second);
       TypeADefined = true;
       if (is_function_sort(TypeA) ? (function_sort(TypeA).domain().size() == parameter_count) : parameter_count == 0)
       {
@@ -2280,10 +2278,10 @@ data_expression data_type_checker::typecheck_n(const data_expression& x, const s
       }
       else
       {
-        auto i = user_constants.find(name);
-        if (i != user_constants.end())
+        auto j = user_constants.find(name);
+        if (j != user_constants.end())
         {
-          TypeA = i->second;
+          TypeA = j->second;
           sort_expression temp;
           if (!match_sorts(TypeA, expected_sort1, temp))
           {
@@ -2294,11 +2292,11 @@ data_expression data_type_checker::typecheck_n(const data_expression& x, const s
         }
         else
         {
-          auto j = system_constants.find(name);
+          auto k = system_constants.find(name);
 
-          if (j != system_constants.end())
+          if (k != system_constants.end())
           {
-            ParList = j->second;
+            ParList = k->second;
             if (ParList.size() == 1)
             {
               x1 = function_symbol(name, ParList.front());
@@ -2610,17 +2608,17 @@ data_expression data_type_checker::typecheck_abstraction(const data_expression& 
     sort_expression temp;
     if (match_sorts(sort_bool::bool_(), ResType, temp))
     {
-      NewType = sort_set::set_(sort_expression(element_sort));
+      NewType = sort_set::set_(element_sort);
       x1 = abstraction(set_comprehension_binder(), comprehension_variables, body);
     }
     else if (match_sorts(sort_nat::nat(), ResType, temp))
     {
-      NewType = sort_bag::bag(sort_expression(element_sort));
+      NewType = sort_bag::bag(element_sort);
       x1 = abstraction(bag_comprehension_binder(), comprehension_variables, body);
     }
     else if (match_sorts(sort_pos::pos(), ResType, temp))
     {
-      NewType = sort_bag::bag(sort_expression(element_sort));
+      NewType = sort_bag::bag(element_sort);
       body = application(sort_nat::cnat(), body);
       x1 = abstraction(bag_comprehension_binder(), comprehension_variables, body);
     }
@@ -2889,7 +2887,7 @@ data_expression data_type_checker::typecheck_application(const application& x, c
         NewArguments.push_front(Argument);
         Type = Type0;
       }
-      data_expression x2 = sort_set::set_enumeration(sort_expression(Type), data_expression_list(atermpp::reverse(NewArguments)));
+      data_expression x2 = sort_set::set_enumeration(Type, data_expression_list(atermpp::reverse(NewArguments)));
       if (sort_set::is_set(expected_sort))
       {
         return sort_set::constructor(Type, sort_set::false_function(Type), x2);
@@ -3057,26 +3055,26 @@ data_expression data_type_checker::typecheck_application(const application& x, c
 
   if (is_function_sort(normalize_sort(NewType)))
   {
-    sort_expression_list NeededArgumentTypes = atermpp::down_cast<function_sort>(normalize_sort(NewType)).domain();
+    sort_expression_list expected_sorts = atermpp::down_cast<function_sort>(normalize_sort(NewType)).domain();
 
-    if (NeededArgumentTypes.size() != Arguments.size())
+    if (expected_sorts.size() != Arguments.size())
     {
-      throw mcrl2::runtime_error("Need argumens of sorts " + data::pp(NeededArgumentTypes) +
+      throw mcrl2::runtime_error("Need argumens of sorts " + data::pp(expected_sorts) +
                                  " which does not match the number of provided arguments "
                                  + data::pp(Arguments) + " (while typechecking "
                                  + data::pp(x) + ").");
     }
     //arguments again
-    sort_expression_list NewArgumentTypes;
-    data_expression_list NewArguments;
+    sort_expression_list new_argument_sorts;
+    data_expression_list new_arguments;
     for (; !Arguments.empty();
            Arguments = Arguments.tail(),
-           ArgumentTypes = ArgumentTypes.tail(), NeededArgumentTypes = NeededArgumentTypes.tail())
+           ArgumentTypes = ArgumentTypes.tail(), expected_sorts = expected_sorts.tail())
     {
       assert(!Arguments.empty());
-      assert(!NeededArgumentTypes.empty());
+      assert(!expected_sorts.empty());
       data_expression Arg = Arguments.front();
-      const sort_expression& NeededType = NeededArgumentTypes.front();
+      const sort_expression& NeededType = expected_sorts.front();
       sort_expression Type = ArgumentTypes.front();
       if (!equal_sorts(NeededType, Type))
       {
@@ -3113,11 +3111,11 @@ data_expression data_type_checker::typecheck_application(const application& x, c
         }
         Type = NewArgType;
       }
-      NewArguments.push_front(Arg);
-      NewArgumentTypes.push_front(Type);
+      new_arguments.push_front(Arg);
+      new_argument_sorts.push_front(Type);
     }
-    Arguments = atermpp::reverse(NewArguments);
-    ArgumentTypes = atermpp::reverse(NewArgumentTypes);
+    Arguments = atermpp::reverse(new_arguments);
+    ArgumentTypes = atermpp::reverse(new_argument_sorts);
   }
 
   //the function again
@@ -3135,15 +3133,15 @@ data_expression data_type_checker::typecheck_application(const application& x, c
   //and the arguments once more
   if (is_function_sort(normalize_sort(NewType)))
   {
-    sort_expression_list NeededArgumentTypes = atermpp::down_cast<function_sort>(normalize_sort(NewType)).domain();
-    sort_expression_list NewArgumentTypes;
-    data_expression_list NewArguments;
+    sort_expression_list expected_sorts = atermpp::down_cast<function_sort>(normalize_sort(NewType)).domain();
+    sort_expression_list new_argument_sorts;
+    data_expression_list new_arguments;
     for (; !Arguments.empty();
            Arguments = Arguments.tail(),
-           ArgumentTypes = ArgumentTypes.tail(), NeededArgumentTypes = NeededArgumentTypes.tail())
+           ArgumentTypes = ArgumentTypes.tail(), expected_sorts = expected_sorts.tail())
     {
       data_expression Arg = Arguments.front();
-      const sort_expression& NeededType = NeededArgumentTypes.front();
+      const sort_expression& NeededType = expected_sorts.front();
       sort_expression Type = ArgumentTypes.front();
 
       if (!equal_sorts(NeededType, Type))
@@ -3182,11 +3180,11 @@ data_expression data_type_checker::typecheck_application(const application& x, c
         Type = NewArgType;
       }
 
-      NewArguments.push_front(Arg);
-      NewArgumentTypes.push_front(Type);
+      new_arguments.push_front(Arg);
+      new_argument_sorts.push_front(Type);
     }
-    Arguments = atermpp::reverse(NewArguments);
-    ArgumentTypes = atermpp::reverse(NewArgumentTypes);
+    Arguments = atermpp::reverse(new_arguments);
+    ArgumentTypes = atermpp::reverse(new_argument_sorts);
   }
 
   data_expression x2 = application(head, Arguments);
@@ -3615,11 +3613,11 @@ void data_type_checker::read_constructors_and_mappings(const function_symbol_vec
       }
       ConstructorType = normalize_sort(ConstructorType);
       if (!is_basic_sort(ConstructorType) ||
-          sort_bool::is_bool(sort_expression(ConstructorType)) ||
-          sort_pos::is_pos(sort_expression(ConstructorType)) ||
-          sort_nat::is_nat(sort_expression(ConstructorType)) ||
-          sort_int::is_int(sort_expression(ConstructorType)) ||
-          sort_real::is_real(sort_expression(ConstructorType))
+          sort_bool::is_bool(ConstructorType) ||
+          sort_pos::is_pos(ConstructorType) ||
+          sort_nat::is_nat(ConstructorType) ||
+          sort_int::is_int(ConstructorType) ||
+          sort_real::is_real(ConstructorType)
               )
       {
         throw mcrl2::runtime_error(
