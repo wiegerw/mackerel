@@ -402,14 +402,31 @@ void make_guarded(process_specification& procspec)
 }
 
 inline
+void log_process_specification(const process_specification& procspec, const std::string& msg)
+{
+  mCRL2log(log::debug) << "\n--- " << msg << " ---\n" << remove_data_parameters_restricted(procspec) << std::endl;
+}
+
+inline
 lps::specification linearize(process_specification procspec)
 {
+  log_process_specification(procspec, "linearize");
+
   eliminate_single_usage_equations(procspec);
+  log_process_specification(procspec, "eliminate_single_usage_equations");
+
   expand_if_then_else(procspec);
+  log_process_specification(procspec, "expand_if_then_else");
+
   convert_process_instances(procspec);
+
   balance_process_parameters(procspec);
+
   make_guarded(procspec);
+  log_process_specification(procspec, "make_guarded");
+
   join_processes(procspec);
+  log_process_specification(procspec, "join_processes");
 
   lps::specification lpsspec;
   lps::linear_process& process = lpsspec.process();
