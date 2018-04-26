@@ -13,11 +13,13 @@
 #define MCRL2_PROCESS_LINEARIZE_H
 
 #include "mcrl2/data/representative_generator.h"
+#include "mcrl2/data/rewriter.h"
 #include "mcrl2/process/builder.h"
 #include "mcrl2/process/eliminate_single_usage_equations.h"
 #include "mcrl2/process/join.h"
 #include "mcrl2/process/process_specification.h"
 #include "mcrl2/process/remove_data_parameters_restricted.h"
+#include "mcrl2/process/rewrite.h"
 #include "mcrl2/lps/specification.h"
 
 namespace mcrl2 {
@@ -411,6 +413,10 @@ inline
 lps::specification linearize(process_specification procspec)
 {
   log_process_specification(procspec, "linearize");
+
+  data::rewriter R(procspec.data());
+  process::rewrite(procspec, R);
+  log_process_specification(procspec, "rewrite");
 
   eliminate_single_usage_equations(procspec);
   log_process_specification(procspec, "eliminate_single_usage_equations");
