@@ -35,7 +35,7 @@ struct expand_process_instance_assignments_builder: public process_expression_bu
     : equations(equations_)
   {}
 
-  /// \brief Converts a process instance P(e) into p[d := e], where P(d) = d is the equation
+  /// \brief Converts a process instance P(e) into p[d := e], where P(d) = e is the equation
   /// corresponding to P.
   process_expression apply(const process::process_instance& x)
   {
@@ -54,7 +54,7 @@ struct expand_process_instance_assignments_builder: public process_expression_bu
     return result;
   }
 
-  /// \brief Converts a process instance assignment P(d = e) into p[d := e], where P(d) = d is the equation
+  /// \brief Converts a process instance assignment P(d = e) into p[d := e], where P(d) = e is the equation
   /// corresponding to P.
   process_expression apply(const process::process_instance_assignment& x)
   {

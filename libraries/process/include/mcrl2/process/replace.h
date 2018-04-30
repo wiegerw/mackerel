@@ -53,7 +53,7 @@ struct add_capture_avoiding_replacement: public data::detail::add_capture_avoidi
     : super(sigma, V)
   { }
 
-  process::process_expression apply(const process::process_instance_assignment& x)
+  process_instance_assignment apply(const process::process_instance_assignment& x)
   {
     static_cast<Derived&>(*this).enter(x);
     const data::assignment_list& a = x.assignments();
@@ -75,15 +75,15 @@ struct add_capture_avoiding_replacement: public data::detail::add_capture_avoidi
         v.emplace_back(k->lhs(), apply(k->rhs()));
       }
     }
-    process::process_expression result = process::process_instance_assignment(x.identifier(), data::assignment_list(v.begin(), v.end()));
+    process_instance_assignment result(x.identifier(), data::assignment_list(v.begin(), v.end()));
     static_cast<Derived&>(*this).leave(x);
     return result;
   }
 
-  process_expression apply(const sum& x)
+  sum apply(const sum& x)
   {
     data::variable_list v = update_sigma.push(x.variables());
-    process_expression result = sum(v, apply(x.operand()));
+    sum result(v, apply(x.operand()));
     update_sigma.pop(v);
     return result;
   }
