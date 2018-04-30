@@ -414,26 +414,34 @@ lps::specification linearize(process_specification procspec)
 {
   log_process_specification(procspec, "linearize");
 
+  mCRL2log(log::verbose) << "Rewrite process specification" << std::endl;
   data::rewriter R(procspec.data());
   process::rewrite(procspec, R);
   log_process_specification(procspec, "rewrite");
 
+  mCRL2log(log::verbose) << "Eliminate single usage equations" << std::endl;
   eliminate_single_usage_equations(procspec);
   log_process_specification(procspec, "eliminate_single_usage_equations");
 
+  mCRL2log(log::verbose) << "Expand if/then/else" << std::endl;
   expand_if_then_else(procspec);
   log_process_specification(procspec, "expand_if_then_else");
 
+  mCRL2log(log::verbose) << "Convert process instances" << std::endl;
   convert_process_instances(procspec);
 
+  mCRL2log(log::verbose) << "Balance process parameters" << std::endl;
   balance_process_parameters(procspec);
 
+  mCRL2log(log::verbose) << "Make process guarded" << std::endl;
   make_guarded(procspec);
   log_process_specification(procspec, "make_guarded");
 
+  mCRL2log(log::verbose) << "Join processes" << std::endl;
   join_processes(procspec);
   log_process_specification(procspec, "join_processes");
 
+  mCRL2log(log::verbose) << "Create LPS" << std::endl;
   lps::specification lpsspec;
   lps::linear_process& process = lpsspec.process();
   process.process_parameters() = procspec.equations().front().formal_parameters();
