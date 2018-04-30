@@ -41,10 +41,9 @@ namespace detail
  **/
 class Rewriter
 {
-  protected:
-    enumerator_identifier_generator m_generator;  //name for variables.
-
   public:
+    enumerator_identifier_generator generator;  //name for variables.
+
     typedef mutable_indexed_substitution<> substitution_type;
 
     used_data_equation_selector data_equation_selector;
@@ -71,7 +70,7 @@ class Rewriter
     /** \brief The fresh name generator of the rewriter */
     data::enumerator_identifier_generator& identifier_generator()
     {
-      return m_generator;
+      return generator;
     }
 
     /**
@@ -150,7 +149,7 @@ class Rewriter
 
     data_expression rewrite_lambda_application(
                       const abstraction& lambda_term,
-                      const application& t,
+                      const data_expression& t,
                       substitution_type& sigma);
 
 

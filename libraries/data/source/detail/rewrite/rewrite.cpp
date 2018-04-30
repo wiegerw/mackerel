@@ -86,7 +86,7 @@ data_expression Rewriter::rewrite_where(
   for (const assignment& a: assignments)
   {
     const variable& v=a.lhs();
-    const variable v_fresh(m_generator(), v.sort());
+    const variable v_fresh(generator("whr_"), v.sort());
     variable_renaming[v]=v_fresh;
     sigma[v_fresh]=rewrite(a.rhs(),sigma);
   }
@@ -125,7 +125,7 @@ abstraction Rewriter::rewrite_single_lambda(
       if (variables_in_sigma.find(v) != variables_in_sigma.end() || sigma(v) != v)
       {
         number_of_renamed_variables++;
-        new_variables[count]=data::variable(m_generator(), v.sort());
+        new_variables[count]=data::variable(generator("y_"), v.sort());
         assert(occur_check(v, new_variables[count]));
       }
       else 
@@ -221,65 +221,53 @@ data_expression Rewriter::rewrite_lambda_application(
 
 data_expression Rewriter::rewrite_lambda_application(
                       const abstraction& lambda_term,
-                      const application& t,
+                      const data_expression& t,
                       substitution_type& sigma)
 {
+  // using namespace atermpp;
   assert(is_lambda(lambda_term));  // The function symbol in this position cannot be anything else than a lambda term.
   const variable_list& vl=lambda_term.variables();
-  // const data_expression lambda_body=rewrite(lambda_term.body(),sigma);
-  const data_expression& lambda_body=lambda_term.body();
+  const data_expression lambda_body=rewrite(lambda_term.body(),sigma);
   std::size_t arity=t.size();
-  if (arity==0) // The term has shape application(lambda d..:D...t), i.e. without arguments.
+  assert(arity>0);
+  if (arity==1) // The term has shape application(lambda d..:D...t), i.e. without arguments.
   {
-    data_expression r= rewrite_single_lambda(vl, lambda_body, true, sigma);
-    return r;
+    return rewrite_single_lambda(vl, lambda_body, true, sigma);
   }
-  assert(vl.size()<=arity);
+  assert(vl.size()<arity);
 
-  // The variable vl_backup will be used to first store the values to be substituted
-  // for the variables in vl. Subsequently, it will be used to temporarily save the values in sigma
-  // assigned to vl. 
-  data_expression* vl_backup = MCRL2_SPECIFIC_STACK_ALLOCATOR(data_expression,vl.size());
-
-  // Calculate the values that must be substituted for the variables in vl and store these in vl_backup.
-  for(std::size_t count=0; count<vl.size(); count++)
-  {
-    new (&vl_backup[count]) data_expression(rewrite(data_expression(t[count]),sigma));
-  }
-
-  // Swap the values assigned to variables in vl with those in vl_backup.
-  std::size_t count=0;
+  mutable_map_substitution<std::map < variable,data_expression> > variable_renaming;
+  std::size_t count=1;
   for(const variable& v: vl)
   {
-    const data_expression temp=sigma(v);
-    sigma[v]=vl_backup[count];
-    vl_backup[count]=temp;
-    count++;
+    const variable v_fresh(generator("x_"), v.sort());
+    variable_renaming[v]=v_fresh;
+    sigma[v_fresh]=rewrite(data_expression(t[count]),sigma);
+    ++count;
   }
 
-  const data_expression result=rewrite(lambda_body,sigma);
+  const data_expression result=rewrite(replace_variables(lambda_body,variable_renaming),sigma);
 
-  // Reset variables in sigma and destroy the elements in vl_backup.
-  count=0; 
-  for(const variable& v: vl)
+  // Reset variables in sigma
+  for(mutable_map_substitution<std::map < variable,data_expression> >::const_iterator it=variable_renaming.begin();
+                 it!=variable_renaming.end(); ++it)
   {
-    sigma[v]=vl_backup[count];
-    vl_backup[count].~data_expression();
-    count++;
+    sigma[atermpp::down_cast<variable>(it->second)]=it->second;
   }
-
-  if (vl.size()==arity)
+  if (vl.size()+1==arity)
   {
     return result;
   }
 
-
   // There are more arguments than bound variables.
-  // Rewrite the remaining arguments and apply the rewritten lambda term to them.  
-  return application(result, 
-                     t.begin()+vl.size(), 
-                     t.end(), 
-                     [this, &sigma](const data_expression& t) -> data_expression { return rewrite(t, sigma); }); 
+  std::vector < data_expression > args;
+  for(std::size_t i=1; i<arity-vl.size(); ++i)
+  {
+    assert(vl.size()+i<arity);
+    args.push_back(atermpp::down_cast<data_expression>(t[vl.size()+i]));
+  }
+  // We do not employ the knowledge that the first argument is in normal form... TODO.
+  return rewrite(application(result, args.begin(), args.end()),sigma);
 }
 
 data_expression Rewriter::existential_quantifier_enumeration(
@@ -311,7 +299,7 @@ data_expression Rewriter::existential_quantifier_enumeration(
   {
     if (sigma(v)!=v)
     {
-      const variable v_fresh(m_generator(), v.sort());
+      const variable v_fresh(generator("ex_"), v.sort());
       variable_renaming[v]=v_fresh;
       vl_new_v.push_back(v_fresh);
     }
@@ -356,7 +344,7 @@ data_expression Rewriter::existential_quantifier_enumeration(
                                              rewriter_wrapper::substitution_type> enumerator_type;
   try
   {
-    enumerator_type enumerator(wrapped_rewriter, m_data_specification_for_enumeration, wrapped_rewriter, m_generator, max_count, throw_exceptions);
+    enumerator_type enumerator(wrapped_rewriter, m_data_specification_for_enumeration, wrapped_rewriter, generator, max_count, throw_exceptions);
   
     /* Create a list to store solutions */
     data_expression partial_result=sort_bool::false_();
@@ -424,7 +412,7 @@ data_expression Rewriter::universal_quantifier_enumeration(
   {
     if (sigma(v)!=v)  // Check whether sigma is defined on v. If not, renaming is not necessary.
     {
-      const variable v_fresh(m_generator(), v.sort());
+      const variable v_fresh(generator("all_"), v.sort());
       variable_renaming[v]=v_fresh;
       vl_new_v.push_back(v_fresh);
     }
@@ -469,7 +457,7 @@ data_expression Rewriter::universal_quantifier_enumeration(
                                              rewriter_wrapper::substitution_type> enumerator_type;
   try
   {
-    enumerator_type enumerator(wrapped_rewriter, m_data_specification_for_enumeration, wrapped_rewriter, m_generator, max_count, throw_exceptions);
+    enumerator_type enumerator(wrapped_rewriter, m_data_specification_for_enumeration, wrapped_rewriter, generator, max_count, throw_exceptions);
 
     /* Create lists to store solutions */
     data_expression partial_result=sort_bool::true_();
