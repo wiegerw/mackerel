@@ -14,9 +14,12 @@
 
 #include <algorithm>
 #include "mcrl2/core/detail/print_utility.h"
+#include "mcrl2/data/rewriter.h"
 #include "mcrl2/process/builder.h"
 #include "mcrl2/process/expand_process_instance_assignments.h"
 #include "mcrl2/process/eliminate_unused_equations.h"
+#include "mcrl2/process/remove_data_parameters_restricted.h"
+#include "mcrl2/process/rewrite.h"
 #include "mcrl2/process/traverser.h"
 #include "mcrl2/utilities/detail/container_utility.h"
 #include "mcrl2/utilities/detail/join.h"
@@ -116,6 +119,7 @@ struct eliminate_single_usage_builder: public process_expression_builder<elimina
 struct eliminate_single_usage_equations_algorithm
 {
   process_specification& procspec;
+  data::rewriter R;
   std::size_t lowerbound;
 
   // Contains the number of times each process variable is used
@@ -134,6 +138,7 @@ struct eliminate_single_usage_equations_algorithm
 
   eliminate_single_usage_equations_algorithm(process_specification& procspec_, std::size_t lowerbound_)
     : procspec(procspec_),
+      R(procspec.data()),
       lowerbound(lowerbound_)
   {}
 
@@ -259,7 +264,7 @@ struct eliminate_single_usage_equations_algorithm
     for (const process_identifier& P: substitution_order)
     {
       process_equation& eqn = *equation_index[P];
-      eqn = f.apply(eqn);
+      eqn = process::rewrite(f.apply(eqn), R);
     }
   }
 
