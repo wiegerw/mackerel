@@ -144,6 +144,7 @@ struct eliminate_unused_equations_algorithm
 inline
 void eliminate_unused_equations(std::vector<process_equation>& equations, const process_expression& init)
 {
+  mCRL2log(log::verbose) << "Eliminate unused equations" << std::endl;
   eliminate_unused_equations_algorithm algorithm(equations, init);
   algorithm.run();
 }

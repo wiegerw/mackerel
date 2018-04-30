@@ -139,26 +139,28 @@ struct eliminate_single_usage_equations_algorithm
 
   void print_dependencies() const
   {
-    mCRL2log(log::verbose) << "--- dependencies ---" << std::endl;
+    mCRL2log(log::debug) << "--- dependencies ---" << std::endl;
     for (const auto& i: dependencies)
     {
-      mCRL2log(log::verbose) << i.first << " " << core::detail::print_set(i.second) << std::endl;
+      mCRL2log(log::debug) << i.first << " " << core::detail::print_set(i.second) << std::endl;
     }
   }
 
   void compute_count_dependencies()
   {
+    mCRL2log(log::verbose) << "Compute count dependencies" << std::endl;
     detail::eliminate_single_usage_traverser f(count, dependencies);
     f.apply(procspec);
-    mCRL2log(log::verbose) << "--- process equation count ---" << std::endl;
+    mCRL2log(log::debug) << "--- process equation count ---" << std::endl;
     for (const auto& i: count)
     {
-      mCRL2log(log::verbose) << i.first << " -> " << i.second << std::endl;
+      mCRL2log(log::debug) << i.first << " -> " << i.second << std::endl;
     }
   }
 
   void compute_to_be_eliminated()
   {
+    mCRL2log(log::verbose) << "Compute to_be_eliminated" << std::endl;
   	using utilities::detail::contains;
     for (const auto& i: dependencies)
     {
@@ -184,6 +186,8 @@ struct eliminate_single_usage_equations_algorithm
 
   void compute_substitution_order()
   {
+    mCRL2log(log::verbose) << "Compute substitution order" << std::endl;
+
   	using utilities::detail::contains;
 
     // cleanup dependencies
@@ -236,11 +240,13 @@ struct eliminate_single_usage_equations_algorithm
       }
     }
 
-    mCRL2log(log::verbose) << "substitution order: " << core::detail::print_list(substitution_order) << std::endl;
+    mCRL2log(log::debug) << "substitution order: " << core::detail::print_list(substitution_order) << std::endl;
   }
 
   void apply_substitutions()
   {
+    mCRL2log(log::verbose) << "Apply substitutions" << std::endl;
+
     // make an index of the equations
     std::map<process_identifier, process_equation*> equation_index;
     for (process_equation& eqn: procspec.equations())
