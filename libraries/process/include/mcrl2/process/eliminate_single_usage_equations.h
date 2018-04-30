@@ -105,8 +105,7 @@ struct expand_process_instances_builder: public process_expression_builder<expan
     {
       sigma[*di] = *ei;
     }
-    auto result = process::replace_variables_capture_avoiding(x, sigma, data::substitution_variables(sigma));
-    return result;
+    return process::replace_variables_capture_avoiding(eqn.expression(), sigma, data::substitution_variables(sigma));
   }
 
   process_expression apply(const process::process_instance_assignment& x)
@@ -117,12 +116,12 @@ struct expand_process_instances_builder: public process_expression_builder<expan
       return x;
     }
     data::mutable_map_substitution<> sigma;
+    const process_equation& eqn = equation_index.equation(x.identifier().name());
     for (const auto& a: x.assignments())
     {
       sigma[a.lhs()] = a.rhs();
     }
-    auto result = process::replace_variables_capture_avoiding(x, sigma, data::substitution_variables(sigma));
-    return result;
+    return process::replace_variables_capture_avoiding(eqn.expression(), sigma, data::substitution_variables(sigma));
   }
 };
 
@@ -216,6 +215,7 @@ struct eliminate_single_usage_equations_algorithm
   void compute_substitution_order()
   {
     mCRL2log(log::verbose) << "Compute substitution order" << std::endl;
+    auto dependencies_copy = dependencies;
 
   	using utilities::detail::contains;
 
@@ -269,6 +269,7 @@ struct eliminate_single_usage_equations_algorithm
       }
     }
 
+    std::swap(dependencies, dependencies_copy);
     mCRL2log(log::debug) << "substitution order: " << core::detail::print_list(substitution_order) << std::endl;
   }
 
@@ -283,7 +284,7 @@ struct eliminate_single_usage_equations_algorithm
     {
       process_equation& eqn = equation_index.equation(P.name());
       detail::expand_process_instances_builder f(equation_index, count_one_dependencies(P));
-      eqn = process::rewrite(f.apply(eqn), R);
+      eqn = process_equation(eqn.identifier(), eqn.formal_parameters(), process::rewrite(f.apply(eqn.expression()), R));
     }
   }
 
