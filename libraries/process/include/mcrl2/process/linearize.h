@@ -17,6 +17,7 @@
 #include "mcrl2/lps/specification.h"
 #include "mcrl2/process/builder.h"
 #include "mcrl2/process/eliminate_single_usage_equations.h"
+#include "mcrl2/process/expand_structured_sorts.h"
 #include "mcrl2/process/join.h"
 #include "mcrl2/process/process_specification.h"
 #include "mcrl2/process/remove_data_parameters_restricted.h"
@@ -408,6 +409,7 @@ inline
 void log_process_specification(const process_specification& procspec, const std::string& msg)
 {
   mCRL2log(log::debug) << "\n--- " << msg << " ---\n" << remove_data_parameters_restricted(procspec) << std::endl;
+  // mCRL2log(log::debug) << "\n--- " << msg << " ---\n" << procspec << std::endl;
 }
 
 inline
@@ -423,6 +425,12 @@ lps::specification linearize(process_specification procspec)
   process::rewrite(procspec, R);
   timer.finish("rewriting");
   log_process_specification(procspec, "rewrite");
+
+  mCRL2log(log::verbose) << "Expand structured sorts" << std::endl;
+  timer.start("expand structured sorts");
+  expand_structured_sorts(procspec);
+  timer.finish("expand structured sorts");
+  log_process_specification(procspec, "expand_structured_sorts");
 
   mCRL2log(log::verbose) << "Eliminate single usage equations" << std::endl;
   timer.start("eliminate single usage equations");
