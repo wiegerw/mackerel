@@ -14,13 +14,14 @@
 
 #include "mcrl2/data/representative_generator.h"
 #include "mcrl2/data/rewriter.h"
+#include "mcrl2/lps/specification.h"
 #include "mcrl2/process/builder.h"
 #include "mcrl2/process/eliminate_single_usage_equations.h"
 #include "mcrl2/process/join.h"
 #include "mcrl2/process/process_specification.h"
 #include "mcrl2/process/remove_data_parameters_restricted.h"
 #include "mcrl2/process/rewrite.h"
-#include "mcrl2/lps/specification.h"
+#include "mcrl2/utilities/execution_timer.h"
 
 namespace mcrl2 {
 
@@ -412,36 +413,53 @@ void log_process_specification(const process_specification& procspec, const std:
 inline
 lps::specification linearize(process_specification procspec)
 {
+  utilities::execution_timer timer;
+
   log_process_specification(procspec, "linearize");
 
   mCRL2log(log::verbose) << "Rewrite process specification" << std::endl;
   data::rewriter R(procspec.data());
+  timer.start("rewriting");
   process::rewrite(procspec, R);
+  timer.finish("rewriting");
   log_process_specification(procspec, "rewrite");
 
   mCRL2log(log::verbose) << "Eliminate single usage equations" << std::endl;
+  timer.start("eliminate single usage equations");
   eliminate_single_usage_equations(procspec);
+  timer.finish("eliminate single usage equations");
   log_process_specification(procspec, "eliminate_single_usage_equations");
 
   mCRL2log(log::verbose) << "Expand if/then/else" << std::endl;
+  timer.start("expand if/then/else");
   expand_if_then_else(procspec);
+  timer.finish("expand if/then/else");
   log_process_specification(procspec, "expand_if_then_else");
 
   mCRL2log(log::verbose) << "Convert process instances" << std::endl;
+  timer.start("convert process instances");
   convert_process_instances(procspec);
+  timer.finish("convert process instances");
 
   mCRL2log(log::verbose) << "Balance process parameters" << std::endl;
+  timer.start("balance process parameters");
   balance_process_parameters(procspec);
+  timer.finish("balance process parameters");
 
   mCRL2log(log::verbose) << "Make process guarded" << std::endl;
+  timer.start("make process guarded");
   make_guarded(procspec);
+  timer.finish("make process guarded");
   log_process_specification(procspec, "make_guarded");
 
   mCRL2log(log::verbose) << "Join processes" << std::endl;
+  timer.start("join processes");
   join_processes(procspec);
+  timer.finish("join processes");
   log_process_specification(procspec, "join_processes");
 
   mCRL2log(log::verbose) << "Create LPS" << std::endl;
+  timer.start("create lps");
   lps::specification lpsspec;
   lps::linear_process& process = lpsspec.process();
   process.process_parameters() = procspec.equations().front().formal_parameters();
@@ -508,6 +526,9 @@ lps::specification linearize(process_specification procspec)
   }
   const auto& init = atermpp::down_cast<process_instance_assignment>(p_init);
   lpsspec.initial_process() = lps::process_initializer(init.assignments());
+  timer.finish("create lps");
+
+  timer.report();
 
   return lpsspec;
 }

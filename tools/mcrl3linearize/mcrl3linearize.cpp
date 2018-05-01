@@ -46,7 +46,9 @@ class mcrl3linearize_tool: public utilities::tools::input_output_tool
 
     bool run() override
     {
+      timer().start("parse + type check process specification");
       process::process_specification procspec = process::detail::parse_process_specification(input_filename());
+      timer().finish("parse + type check process specification");
       lps::specification lpsspec = linearize(procspec);
       lps::detail::save_lps(lpsspec, output_filename());
       return true;

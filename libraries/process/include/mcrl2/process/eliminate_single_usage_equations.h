@@ -135,7 +135,7 @@ struct eliminate_single_usage_equations_algorithm
   // Contains the order in which substitutions will be applied
   std::vector<process_identifier> substitution_order;
 
-  eliminate_single_usage_equations_algorithm(process_specification& procspec_)
+  explicit eliminate_single_usage_equations_algorithm(process_specification& procspec_)
     : procspec(procspec_),
       R(procspec.data())
   {}
@@ -276,7 +276,6 @@ struct eliminate_single_usage_equations_algorithm
       }
       process_equation& eqn = equation_index.equation(P.name());
       detail::expand_process_instances_builder f(equation_index, dep, R);
-      auto fx = f.apply(eqn.expression());
       eqn = process_equation(eqn.identifier(), eqn.formal_parameters(), f.apply(eqn.expression()));
     }
   }
