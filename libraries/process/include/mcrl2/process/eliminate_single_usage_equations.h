@@ -18,6 +18,7 @@
 #include "mcrl2/process/builder.h"
 #include "mcrl2/process/expand_process_instance_assignments.h"
 #include "mcrl2/process/eliminate_unused_equations.h"
+#include "mcrl2/process/instantiate.h"
 #include "mcrl2/process/process_equation_index.h"
 #include "mcrl2/process/remove_data_parameters_restricted.h"
 #include "mcrl2/process/rewrite.h"
@@ -83,45 +84,32 @@ struct expand_process_instances_builder: public process_expression_builder<expan
 
   const process_equation_index& equation_index;
   const std::vector<process_identifier>& instances;
+  const data::rewriter& R;
 
-  expand_process_instances_builder(process_equation_index& equation_index_, std::vector<process_identifier> instances_)
-   : equation_index(equation_index_), instances(instances_)
+  expand_process_instances_builder(process_equation_index& equation_index_, const std::vector<process_identifier>& instances_, const data::rewriter& R_)
+   : equation_index(equation_index_), instances(instances_), R(R_)
   {}
 
-  process_expression apply(const process::process_instance& x)
+  process_expression apply(const process_instance& x)
   {
     auto i = std::find(instances.begin(), instances.end(), x.identifier());
-    if (i == instances.end())
+    if (i != instances.end())
     {
       return x;
     }
-    data::mutable_map_substitution<> sigma;
     const process_equation& eqn = equation_index.equation(x.identifier().name());
-    const data::variable_list& d = eqn.formal_parameters();
-    const data::data_expression_list& e = x.actual_parameters();
-    auto di = d.begin();
-    auto ei = e.begin();
-    for (; di != d.end(); ++di, ++ei)
-    {
-      sigma[*di] = *ei;
-    }
-    return process::replace_variables_capture_avoiding(eqn.expression(), sigma, data::substitution_variables(sigma));
+    return instantiate(x, eqn, R);
   }
 
-  process_expression apply(const process::process_instance_assignment& x)
+  process_expression apply(const process_instance_assignment& x)
   {
     auto i = std::find(instances.begin(), instances.end(), x.identifier());
     if (i == instances.end())
     {
       return x;
     }
-    data::mutable_map_substitution<> sigma;
     const process_equation& eqn = equation_index.equation(x.identifier().name());
-    for (const auto& a: x.assignments())
-    {
-      sigma[a.lhs()] = a.rhs();
-    }
-    return process::replace_variables_capture_avoiding(eqn.expression(), sigma, data::substitution_variables(sigma));
+    return instantiate(x, eqn, R);
   }
 };
 
@@ -229,7 +217,7 @@ struct eliminate_single_usage_equations_algorithm
     while (true)
     {
       std::set<process_identifier> remove;
-      for (auto i = dependencies.cbegin(); i != dependencies.cend();)
+      for (auto i = dependencies.begin(); i != dependencies.end();)
       {
         if (i->second.empty())
         {
@@ -246,7 +234,6 @@ struct eliminate_single_usage_equations_algorithm
       {
         break;
       }
-      substitution_order.insert(substitution_order.end(), remove.begin(), remove.end());
       for (auto& p: dependencies)
       {
         // p.second := p.second \ remove
@@ -282,9 +269,15 @@ struct eliminate_single_usage_equations_algorithm
     // apply substitutions to the equation in the order given by substitution_order
     for (const process_identifier& P: substitution_order)
     {
+      auto dep = count_one_dependencies(P);
+      if (dep.empty())
+      {
+        continue;
+      }
       process_equation& eqn = equation_index.equation(P.name());
-      detail::expand_process_instances_builder f(equation_index, count_one_dependencies(P));
-      eqn = process_equation(eqn.identifier(), eqn.formal_parameters(), process::rewrite(f.apply(eqn.expression()), R));
+      detail::expand_process_instances_builder f(equation_index, dep, R);
+      auto fx = f.apply(eqn.expression());
+      eqn = process_equation(eqn.identifier(), eqn.formal_parameters(), f.apply(eqn.expression()));
     }
   }
 
