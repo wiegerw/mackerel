@@ -91,13 +91,6 @@ process_specification remove_data_parameters_restricted(const process_specificat
 }
 
 inline
-process_equation remove_data_parameters_restricted(const process_equation& x)
-{
-  detail::remove_data_parameters_restricted_builder f;
-  return f.apply(x);
-}
-
-inline
 process_expression remove_data_parameters_restricted(const process_expression& x)
 {
   detail::remove_data_parameters_restricted_builder f;

@@ -181,6 +181,7 @@ std::map<data::data_expression, data::data_expression> make_structured_sort_subs
     data::function_symbol f(arg.name(), data::function_sort(data::sort_expression_list({ v.sort() }), arg.sort()));
     data::application lhs(f, v);
     data::variable rhs(arg.name(), arg.sort());
+    // TODO: find out why these sorts are not normalized yet
     lhs = data::normalize_sorts(lhs, procspec.data());
     rhs = data::normalize_sorts(rhs, procspec.data());
     sigma[lhs] = rhs;
