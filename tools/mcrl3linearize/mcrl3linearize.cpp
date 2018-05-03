@@ -25,14 +25,18 @@ class mcrl3linearize_tool: public utilities::tools::input_output_tool
   protected:
     typedef utilities::tools::input_output_tool super;
 
+    bool expand_structured_sorts = false;
+
     void parse_options(const utilities::command_line_parser& parser) override
     {
       super::parse_options(parser);
+      expand_structured_sorts = parser.options.count("expand-structured-sorts") > 0;
     }
 
     void add_options(utilities::interface_description& desc) override
     {
       super::add_options(desc);
+      desc.add_option("expand-structured-sorts", "expand structured sorts", 'e');
     }
 
   public:
@@ -49,7 +53,7 @@ class mcrl3linearize_tool: public utilities::tools::input_output_tool
       timer().start("parse + type check process specification");
       process::process_specification procspec = process::detail::parse_process_specification(input_filename());
       timer().finish("parse + type check process specification");
-      lps::specification lpsspec = linearize(procspec);
+      lps::specification lpsspec = linearize(procspec, expand_structured_sorts);
       lps::detail::save_lps(lpsspec, output_filename());
       return true;
     }

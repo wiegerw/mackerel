@@ -348,16 +348,7 @@ process_expression parse_process_expression(const std::string& text,
 inline
 process_expression parse_process_expression(const std::string& text, const std::string& procspec_text)
 {
-  std::vector<std::string> keywords;
-  keywords.push_back("sort");
-  keywords.push_back("var");
-  keywords.push_back("eqn");
-  keywords.push_back("map");
-  keywords.push_back("cons");
-  keywords.push_back("act");
-  keywords.push_back("glob");
-  keywords.push_back("proc");
-  keywords.push_back("init");
+  std::vector<std::string> keywords = { "sort", "var", "eqn", "map", "cons", "act", "glob", "proc", "init" };
   std::pair<std::string, std::string> result = utilities::detail::separate_keyword_section(procspec_text, "init", keywords);
   std::string init_text = "init\n     " + text + ";\n";
   std::string ptext = result.second + init_text;

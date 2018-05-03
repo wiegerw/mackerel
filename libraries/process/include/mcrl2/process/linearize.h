@@ -413,7 +413,7 @@ void log_process_specification(const process_specification& procspec, const std:
 }
 
 inline
-lps::specification linearize(process_specification procspec)
+lps::specification linearize(process_specification procspec, bool expand_structured_sorts = false)
 {
   utilities::execution_timer timer;
 
@@ -426,11 +426,14 @@ lps::specification linearize(process_specification procspec)
   timer.finish("rewriting");
   log_process_specification(procspec, "rewrite");
 
-  mCRL2log(log::verbose) << "Expand structured sorts" << std::endl;
-  timer.start("expand structured sorts");
-  expand_structured_sorts(procspec);
-  timer.finish("expand structured sorts");
-  log_process_specification(procspec, "expand_structured_sorts");
+  if (expand_structured_sorts)
+  {
+    mCRL2log(log::verbose) << "Expand structured sorts" << std::endl;
+    timer.start("expand structured sorts");
+    process::expand_structured_sorts(procspec);
+    timer.finish("expand structured sorts");
+    log_process_specification(procspec, "expand_structured_sorts");
+  }
 
   mCRL2log(log::verbose) << "Eliminate single usage equations" << std::endl;
   timer.start("eliminate single usage equations");
