@@ -9,11 +9,8 @@
 /// \file identifier_string_test.cpp
 /// \brief Add your file description here.
 
-#define MCRL2_PRINT_DEBUG
-
 #include "mcrl2/core/print.h"
 #include <boost/test/minimal.hpp>
-#include <sstream>
 
 using namespace mcrl2;
 

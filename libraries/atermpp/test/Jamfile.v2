@@ -1,0 +1,10 @@
+import os ;
+import testing ;
+
+project libraries/atermpp/test
+   : requirements
+       <library>/aterm//aterm
+       <library>/utilities//utilities
+   ;
+
+test-suite atermpp : [ test_all r ] ;

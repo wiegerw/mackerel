@@ -1,0 +1,13 @@
+import testing ;
+
+project libraries/data/test
+   : requirements            
+       <library>/aterm//aterm
+       <library>/core//core
+       <library>/data//data
+       <library>/dparser//dparser
+       <library>/utilities//utilities
+       <library>/boost/test//boost_unit_test_framework
+   ;
+
+test-suite data : [ test_all r ] ;

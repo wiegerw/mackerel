@@ -1,0 +1,11 @@
+import testing ;
+
+project libraries/utilities/test
+   : requirements            
+       <library>/aterm//aterm
+       <library>/core//core
+       <library>/data//data
+       <library>/utilities//utilities
+   ;
+
+test-suite utilities : [ test_all r ] ;
