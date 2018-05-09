@@ -21,13 +21,16 @@ Some of the major goals are:
 
 * Make a new implementation of the data type checker
 * Make a new implementation of the rewriter
-* Make a new implementation of the linearization of process specifications
+* Make a new implementation of the linearization of process specifications (partially finished)
 * Make a new implementation of the state space generation
 
 Some of the minor goals are:
 
 * Add multi actions to the process library
 * Properly handle sort normalization. This should help to simplify the class data_specification
+* Simplify the build (partially finished)
+* Support structured sort update syntax (partially finished)
+* Support imports
 
 ## Tools
 
