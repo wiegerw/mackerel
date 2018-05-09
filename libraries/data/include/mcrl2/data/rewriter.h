@@ -30,8 +30,11 @@ namespace mcrl2
 namespace data
 {
 
-/// \brief Rewriter class for the mCRL2 Library. It only works for terms of type data_expression
-/// and data_expression_with_variables.
+/// \brief Rewriter class for the mCRL2 Library. It only works for terms of type data_expression.
+// TODO: The rewriter only supports data::mutable_indexed_substitution<> as substitution type. This
+// needs to be fixed, because it is a major source of inefficiency.
+// TODO: The rewriter is implemented in terms of detail::Rewriter. This needs to be fixed, because
+// the class detail::Rewriter is unspecified, and has several problems.
 template < typename Term >
 class basic_rewriter
 {
@@ -55,7 +58,7 @@ class basic_rewriter
 
     /// \brief Constructor.
     /// \param[in] r A rewriter
-    basic_rewriter(const std::shared_ptr<detail::Rewriter>& r) :
+    explicit basic_rewriter(const std::shared_ptr<detail::Rewriter>& r) :
       m_rewriter(r)
     {}
 
@@ -66,15 +69,15 @@ class basic_rewriter
     basic_rewriter& operator=(const basic_rewriter& other)=default;
 
     /// \brief Constructor.
-    /// \param[in] d A data specification
+    /// \param[in] dataspec A data specification
     /// \param[in] s A rewriter strategy.
-    basic_rewriter(const data_specification& d, const strategy s = jitty) :
-      m_rewriter(detail::createRewriter(d, used_data_equation_selector(d), static_cast< rewrite_strategy >(s)))
+    explicit basic_rewriter(const data_specification& dataspec, strategy s = jitty) :
+      m_rewriter(detail::createRewriter(dataspec, used_data_equation_selector(dataspec), s))
     { }
 
     /// \brief Constructor.
-    basic_rewriter(const data_specification& d, const used_data_equation_selector& equation_selector, const strategy s = jitty) :
-      m_rewriter(detail::createRewriter(d, equation_selector, static_cast< rewrite_strategy >(s)))
+    basic_rewriter(const data_specification& dataspec, const used_data_equation_selector& equation_selector, strategy s = jitty) :
+      m_rewriter(detail::createRewriter(dataspec, equation_selector, s))
     {}
 
 };
@@ -90,26 +93,24 @@ class rewriter: public basic_rewriter<data_expression>
   public:
     typedef basic_rewriter<data_expression>::substitution_type substitution_type;
 
-    /// \brief Constructor.
+    /// \brief Copy constructor.
     /// \param[in] r a rewriter.
-    rewriter(const rewriter& r) :
-      basic_rewriter<data_expression>(r)
-    { }
+    rewriter(const rewriter& r) = default;
 
     /// \brief Constructor.
-    /// \param[in] d A data specification
+    /// \param[in] dataspec A data specification
     /// \param[in] s A rewriter strategy.
-    rewriter(const data_specification& d = rewriter::default_specification(), const strategy s = jitty) :
-      basic_rewriter<data_expression>(d, s)
+    explicit rewriter(const data_specification& dataspec = rewriter::default_specification(), strategy s = jitty) :
+      basic_rewriter<data_expression>(dataspec, s)
     { }
 
     /// \brief Constructor.
-    /// \param[in] d A data specification
+    /// \param[in] dataspec A data specification
     /// \param[in] selector A component that selects the equations that are converted to rewrite rules
     /// \param[in] s A rewriter strategy.
     template < typename EquationSelector >
-    rewriter(const data_specification& d, const EquationSelector& selector, const strategy s = jitty) :
-      basic_rewriter<data_expression>(d, selector, s)
+    rewriter(const data_specification& dataspec, const EquationSelector& selector, strategy s = jitty) :
+      basic_rewriter<data_expression>(dataspec, selector, s)
     {
     }
 
@@ -121,66 +122,40 @@ class rewriter: public basic_rewriter<data_expression>
     }
 
     /// \brief Rewrites a data expression.
-    /// \param[in] d A data expression
-    /// \return The normal form of d.
-    data_expression operator()(const data_expression& d) const
+    /// \param[in] x A data expression
+    /// \return The normal form of x.
+    /// N.B. This function is extremely inefficient, due to limitations of the detail::Rewriter class.
+    data_expression operator()(const data_expression& x) const
     {
       substitution_type sigma;
-#ifdef MCRL2_PRINT_REWRITE_STEPS
-      mCRL2log(log::debug) << "REWRITE: " << d;
-#endif
-      data_expression result(m_rewriter->rewrite(d,sigma));
-
-#ifdef MCRL2_PRINT_REWRITE_STEPS
-      mCRL2log(log::debug) << " ------------> " << result << std::endl;
-#endif
-      return result;
+      return m_rewriter->rewrite(x, sigma);
     }
 
-    /// \brief Rewrites the data expression d, and on the fly applies a substitution function
+    /// \brief Rewrites the data expression x, and on the fly applies a substitution function
     /// to data variables.
-    /// \param[in] d A data expression
+    /// \param[in] x A data expression
     /// \param[in] sigma A substitution function
     /// \return The normal form of the term.
+    /// N.B. This function is extremely inefficient, due to limitations of the detail::Rewriter class.
     template <typename SubstitutionFunction>
-    data_expression operator()(const data_expression& d, const SubstitutionFunction& sigma) const
+    data_expression operator()(const data_expression& x, const SubstitutionFunction& sigma) const
     {
-# ifdef MCRL2_PRINT_REWRITE_STEPS
-      mCRL2log(log::debug) << "REWRITE " << d << "\n";
-#endif
-      substitution_type sigma_with_iterator;
-      std::set < variable > free_variables=data::find_free_variables(d);
-      for(const variable& free_variable: free_variables)
+      substitution_type sigma_copy;
+      for(const variable& v: data::find_free_variables(x))
       {
-        sigma_with_iterator[free_variable]=sigma(free_variable);
+        sigma_copy[v] = sigma(v);
       }
-
-      data_expression result(m_rewriter->rewrite(d,sigma_with_iterator));
-
-# ifdef MCRL2_PRINT_REWRITE_STEPS
-      mCRL2log(log::debug) << " ------------> " << result << std::endl;
-#endif
-      return result;
+      return m_rewriter->rewrite(x, sigma_copy);
     }
 
     /// \brief Rewrites the data expression d, and on the fly applies a substitution function
     /// to data variables.
-    /// \param[in] d A data expression
+    /// \param[in] x A data expression
     /// \param[in] sigma A substitution function
     /// \return The normal form of the term.
-    //  Added bij JFG, to avoid the use of find_free_variables in the function operator() with
-    //  an arbitrary SubstitionFunction, as this is prohibitively costly.
-
-    data_expression operator()(const data_expression& d, substitution_type& sigma) const
+    data_expression operator()(const data_expression& x, substitution_type& sigma) const
     {
-# ifdef MCRL2_PRINT_REWRITE_STEPS
-      mCRL2log(log::debug) << "REWRITE " << d << "\n";
-      data_expression result(m_rewriter->rewrite(d,sigma));
-      mCRL2log(log::debug) << " ------------> " << result << std::endl;
-      return result;
-#else
-      return m_rewriter->rewrite(d,sigma);
-#endif
+      return m_rewriter->rewrite(x, sigma);
     }
 };
 
