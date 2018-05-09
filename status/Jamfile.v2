@@ -1,0 +1,13 @@
+# regression-testing Jamfile
+
+project status
+    : source-location .
+    ;
+
+build-project ../libraries/atermpp/test ;            # test-suite atermpp
+build-project ../libraries/core/test ;               # test-suite core
+build-project ../libraries/data/test ;               # test-suite data
+build-project ../libraries/lps/test ;                # test-suite lps
+build-project ../libraries/process/test ;            # test-suite process
+build-project ../libraries/utilities/test ;          # test-suite utilities
+
