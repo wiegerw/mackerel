@@ -13,10 +13,8 @@
 #include "mcrl2/lps/detail/lps_io.h"
 #include "mcrl2/process/detail/process_io.h"
 #include "mcrl2/process/linearize.h"
-#include "mcrl2/utilities/logger.h"
 #include "mcrl2/utilities/detail/io.h"
 #include "mcrl2/utilities/input_output_tool.h"
-#include "mcrl2/utilities/text_utility.h"
 
 using namespace mcrl2;
 
