@@ -17,6 +17,7 @@ project mcrl2
        <include>libraries/core/include
        <include>libraries/data/include
        <include>libraries/lps/include
+       <include>libraries/lts/include
        <include>libraries/process/include
        <include>libraries/utilities/include
 
