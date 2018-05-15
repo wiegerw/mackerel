@@ -39,6 +39,13 @@ struct transition
   }
 };
 
+// The states are identified by numbers in the interval [0 ... number_of_states).
+// For each transition (from, label, to) we have
+//    0 <= to < number_of_states
+//    0 <= label < action_labels.size()
+//    0 <= from < number_of_states.
+//
+// The special action "tau" is always at the front of action_labels.
 struct labeled_transition_system
 {
   std::vector<transition> transitions;

@@ -7,7 +7,7 @@
 // http://www.boost.org/LICENSE_1_0.txt)
 //
 /// \file mcrl2/lts/parse.h
-/// \brief A simple straighforward parser for .fsm files.
+/// \brief A parser for .aut files.
 
 #ifndef MCRL2_LTS_PARSE_H
 #define MCRL2_LTS_PARSE_H
@@ -44,6 +44,9 @@ labeled_transition_system parse_lts(Iterator first, Iterator last)
   std::map<std::string, std::size_t> label_map;
   labeled_transition_system result;
 
+  // the special action "tau" has always label 0
+  label_map["tau"] = 0;
+
   std::size_t from;
   std::size_t label;
   std::size_t to;
@@ -68,7 +71,7 @@ labeled_transition_system parse_lts(Iterator first, Iterator last)
 
   auto assign_from = [&](auto& ctx)
     {
-      from  = _attr(ctx);
+      from = _attr(ctx);
     };
 
   auto assign_label = [&](auto& ctx)

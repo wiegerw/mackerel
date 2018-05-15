@@ -1,0 +1,17 @@
+project ltstransform
+   : requirements
+       <library>/aterm//aterm
+       <library>/core//core
+       <library>/data//data
+       <library>/lps//lps
+       <library>/process//process
+       <library>/utilities//utilities
+       <library>/dparser//dparser
+   ;
+
+exe ltstransform
+  :
+    ltstransform.cpp
+  ;
+
+install dist : ltstransform : <variant>debug:<location>../../install_debug/bin <variant>release:<location>../../install/bin ;
