@@ -4,4 +4,4 @@ project(lts)
 #add_library(lps ${SOURCES})
 #target_link_libraries(lts data)
 
-add_subdirectory(test)
+#add_subdirectory(test)
