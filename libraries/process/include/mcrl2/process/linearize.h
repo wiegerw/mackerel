@@ -47,6 +47,12 @@ process_expression make_if_then(const data::data_expression& b, const process_ex
     }
     return join_summands(summands.begin(), summands.end());
   }
+  else if (is_sum(x))
+  {
+    const auto& x_ = atermpp::down_cast<sum>(x);
+    auto operand = make_if_then(b, x_.operand());
+    return sum(x_.variables(), operand);
+  }
   return if_then(b, x);
 }
 
@@ -166,7 +172,7 @@ struct convert_process_instances_builder: public process_expression_builder<conv
 
   std::map<process_identifier, const process_equation*> equation_index;
 
-  convert_process_instances_builder(process_specification& procspec)
+  explicit convert_process_instances_builder(process_specification& procspec)
   {
     for (const process_equation& eqn: procspec.equations())
     {
