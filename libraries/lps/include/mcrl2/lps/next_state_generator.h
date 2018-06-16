@@ -82,7 +82,7 @@ class next_state_generator
 
       public:
         /// \brief Trivial constructor. Constructs an invalid command subset.
-        summand_subset_t() {}
+        summand_subset_t() = default;
 
         /// \brief Constructs the full summand subset for the given generator.
         summand_subset_t(next_state_generator *generator, bool use_summand_pruning);
@@ -108,55 +108,24 @@ class next_state_generator
 
     typedef mcrl2::lps::state_probability_pair<lps::state, lps::probabilistic_data_expression> state_probability_pair;
 
-    class transition_t
+    struct transition
     {
-      public:
-        typedef std::forward_list<state_probability_pair> state_probability_list;
+      typedef std::forward_list<state_probability_pair> state_probability_list;
 
-      protected:
-        lps::multi_action m_action;
-        lps::state m_target_state;
-        std::size_t m_summand_index;
+        lps::multi_action action;
+        lps::state target_state;
+        std::size_t summand_index;
         // The following list contains all but one target states with their probabity.
         // m_target_state is the other state, with the residual probability, such
         // that all probabilities add up to 1.
-        state_probability_list m_other_target_states;
-
-      public:
-        const lps::multi_action& action() const
-        {
-          return m_action;
-        }
-
-        void set_action(const lps::multi_action& action)
-        {
-          m_action=action;
-        }
-
-        const lps::state& target_state() const { return m_target_state; }
-        void set_target_state(const lps::state& target_state)
-        {
-          m_target_state=target_state;
-        }
-
-        std::size_t summand_index() const { return m_summand_index; }
-        void set_summand_index(const std::size_t summand_index)
-        {
-          m_summand_index=summand_index;
-        }
-
-        const state_probability_list& other_target_states() const { return m_other_target_states; }
-        void set_other_target_states(const state_probability_list& other_target_states)
-        {
-          m_other_target_states=other_target_states;
-        }
+        state_probability_list other_target_states;
     };
 
-    class iterator: public boost::iterator_facade<iterator, const transition_t, boost::forward_traversal_tag>
+    class iterator: public boost::iterator_facade<iterator, const transition, boost::forward_traversal_tag>
     {
       protected:
-        transition_t m_transition;
-        next_state_generator* m_generator;
+        transition m_transition;
+        next_state_generator* m_generator = nullptr;
         lps::state m_state;
         substitution_t* m_substitution;
 
@@ -195,16 +164,13 @@ class next_state_generator
 
 
       public:
-        iterator()
-          : m_generator(nullptr)
-        {
-        }
+        iterator() = default;
 
         iterator(next_state_generator* generator, const lps::state& state, substitution_t* substitution, summand_subset_t& summand_subset, enumerator_queue_t* enumeration_queue);
 
         iterator(next_state_generator* generator, const lps::state& state, substitution_t* substitution, std::size_t summand_index, enumerator_queue_t* enumeration_queue);
 
-        operator bool() const
+        explicit operator bool() const
         {
           return m_generator != nullptr;
         }
@@ -217,7 +183,7 @@ class next_state_generator
           return (!(bool)*this && !(bool)other) || (this == &other);
         }
 
-        const transition_t& dereference() const
+        const transition& dereference() const
         {
           return m_transition;
         }
@@ -237,7 +203,7 @@ class next_state_generator
 
     data::variable_vector m_process_parameters;
     std::vector<summand_t> m_summands;
-    transition_t::state_probability_list m_initial_states;
+    transition::state_probability_list m_initial_states;
 
     summand_subset_t m_all_summands;
 
@@ -280,7 +246,7 @@ class next_state_generator
     }
 
     /// \brief Gets the initial state.
-    const transition_t::state_probability_list& initial_states() const
+    const transition::state_probability_list& initial_states() const
     {
       return m_initial_states;
     }
@@ -300,7 +266,7 @@ class next_state_generator
     // Calculate the set of states with associated probabilities from a symbolic state
     // and an associated stochastic distribution for the free variables in that state.
     // The result is a list of closed states with associated probabilities.
-    const transition_t::state_probability_list calculate_distribution(
+    const transition::state_probability_list calculate_distribution(
                          const stochastic_distribution& dist,
                          const data::data_expression_vector& state_args,
                          substitution_t& sigma);

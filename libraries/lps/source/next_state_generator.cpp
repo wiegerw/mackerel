@@ -72,37 +72,35 @@ next_state_generator::next_state_generator(
     mCRL2log(log::warning) << "Specification uses time, which is (currently) only partly supported." << std::endl;
   }
 
-  for (stochastic_action_summand_vector::iterator i = m_specification.process().action_summands().begin();
-                 i != m_specification.process().action_summands().end(); i++)
+  for (auto& action_summand : m_specification.process().action_summands())
   {
     summand_t summand;
-    summand.summand = &(*i);
-    summand.variables =  order_variables_to_optimise_enumeration(i->summation_variables(),spec.data());
-    summand.condition = i->condition();
-    const data_expression_list& l=i->next_state(m_specification.process().process_parameters());
-    summand.distribution = i->distribution();
+    summand.summand = &action_summand;
+    summand.variables =  order_variables_to_optimise_enumeration(action_summand.summation_variables(),spec.data());
+    summand.condition = action_summand.condition();
+    const data_expression_list& l= action_summand.next_state(m_specification.process().process_parameters());
+    summand.distribution = action_summand.distribution();
     summand.result_state = data_expression_vector(l.begin(),l.end());
-    if (i->multi_action().has_time())
+    if (action_summand.multi_action().has_time())
     {
-      summand.time_tag=i->multi_action().time();
+      summand.time_tag= action_summand.multi_action().time();
     }
 
-    for (process::action_list::const_iterator j = i->multi_action().actions().begin(); j != i->multi_action().actions().end(); j++)
+    for (const auto& a: action_summand.multi_action().actions())
     {
       action_internal_t action_label;
-      action_label.label = j->label();
+      action_label.label = a.label();
 
-      for (data_expression_list::iterator k = j->arguments().begin(); k != j->arguments().end(); k++)
+      for (const auto& arg: a.arguments())
       {
-        action_label.arguments.push_back(*k);
+        action_label.arguments.push_back(arg);
       }
-
       summand.action_label.push_back(action_label);
     }
 
     for (std::size_t j = 0; j < m_process_parameters.size(); j++)
     {
-      if (data::search_free_variable(i->condition(), m_process_parameters[j]))
+      if (data::search_free_variable(action_summand.condition(), m_process_parameters[j]))
       {
         summand.condition_parameters.push_back(j);
       }
@@ -126,8 +124,7 @@ next_state_generator::next_state_generator(
   m_all_summands = summand_subset_t(this, use_summand_pruning);
 }
 
-next_state_generator::~next_state_generator()
-{}
+next_state_generator::~next_state_generator() = default;
 
 next_state_generator::summand_subset_t::summand_subset_t(next_state_generator *generator, bool use_summand_pruning)
   : m_generator(generator),
@@ -244,7 +241,7 @@ struct parameter_score
   std::size_t parameter_id;
   float score;
 
-  parameter_score() {}
+  parameter_score() = default;
 
   parameter_score(std::size_t id, float score_)
     : parameter_id(id), score(score_)
@@ -262,10 +259,10 @@ void next_state_generator::summand_subset_t::build_pruning_parameters(const stoc
 
   for (std::size_t i = 0; i < m_generator->m_process_parameters.size(); i++)
   {
-    parameters.push_back(parameter_score(i, 0));
-    for (stochastic_action_summand_vector::const_iterator j = summands.begin(); j != summands.end(); j++)
+    parameters.emplace_back(i, 0);
+    for (const auto& summand : summands)
     {
-      parameters[i].score += condition_selectivity(j->condition(), m_generator->m_process_parameters[i]);
+      parameters[i].score += condition_selectivity(summand.condition(), m_generator->m_process_parameters[i]);
     }
   }
 
@@ -290,19 +287,18 @@ atermpp::detail::shared_subset<next_state_generator::summand_t>::iterator next_s
 {
   assert(m_use_summand_pruning);
 
-  for (std::size_t i = 0; i < m_pruning_parameters.size(); i++)
+  for (unsigned long m_pruning_parameter: m_pruning_parameters)
   {
-    const variable& v=m_generator->m_process_parameters[m_pruning_parameters[i]];
+    const variable& v=m_generator->m_process_parameters[m_pruning_parameter];
     m_pruning_substitution[v] = v;
   }
 
   pruning_tree_node_t *node = &m_pruning_tree;
-  for (std::size_t i = 0; i < m_pruning_parameters.size(); i++)
+  for (unsigned long parameter: m_pruning_parameters)
   {
-    std::size_t parameter = m_pruning_parameters[i];
     const data_expression& argument = state.element_at(parameter,m_generator->m_process_parameters.size());
     m_pruning_substitution[m_generator->m_process_parameters[parameter]] = argument;
-    std::map<data_expression, pruning_tree_node_t>::iterator position = node->children.find(argument);
+    auto position = node->children.find(argument);
     if (position == node->children.end())
     {
       pruning_tree_node_t child;
@@ -362,7 +358,7 @@ next_state_generator::iterator::iterator(next_state_generator *generator, const 
     m_enumeration_queue(enumeration_queue)
 {
   std::size_t j=0;
-  for (state::iterator i = state.begin(); i!=state.end(); ++i, ++j)
+  for (auto i = state.begin(); i != state.end(); ++i, ++j)
   {
     (*m_substitution)[generator->m_process_parameters[j]] = *i;
   }
@@ -383,13 +379,13 @@ struct is_not_zero
   }
 };
 
-const next_state_generator::transition_t::state_probability_list next_state_generator::calculate_distribution(
+const next_state_generator::transition::state_probability_list next_state_generator::calculate_distribution(
                          const stochastic_distribution& dist,
                          const data::data_expression_vector& state_args,
                          substitution_t& sigma)
 {
   rewriter_class r(m_rewriter,sigma);
-  transition_t::state_probability_list resulting_state_probability_list;
+  transition::state_probability_list resulting_state_probability_list;
   if (dist.variables().empty())
   {
     const lps::state target_state(state_args.begin(),state_args.size(),r);
@@ -495,7 +491,7 @@ void next_state_generator::iterator::increment()
                                                       m_summand->condition_parameters.end(),
                                                       apply_m_state);
 
-      std::map<condition_arguments_t, summand_enumeration_t>::iterator position = m_summand->enumeration_cache.find(m_enumeration_cache_key);
+      auto position = m_summand->enumeration_cache.find(m_enumeration_cache_key);
       if (position == m_summand->enumeration_cache.end())
       {
         m_cached = false;
@@ -517,9 +513,9 @@ void next_state_generator::iterator::increment()
     }
     if (!m_cached)
     {
-      for (data::variable_list::iterator i = m_summand->variables.begin(); i != m_summand->variables.end(); i++)
+      for (const auto& variable: m_summand->variables)
       {
-        (*m_substitution)[*i] = *i;  // Reset the variable.
+        (*m_substitution)[variable] = variable;  // Reset the variable.
       }
       enumerate(m_summand->variables, m_summand->condition, *m_substitution);
     }
@@ -577,15 +573,15 @@ void next_state_generator::iterator::increment()
     // There is no distribution, and therefore only one target state is generated
     const data_expression_vector& state_args=m_summand->result_state;
     rewriter_class r(m_generator->m_rewriter,*m_substitution);
-    m_transition.set_target_state(lps::state(state_args.begin(),state_args.size(),r));
-    m_transition.set_other_target_states(transition_t::state_probability_list());
+    m_transition.target_state = lps::state(state_args.begin(),state_args.size(),r);
+    m_transition.other_target_states = transition::state_probability_list();
   }
   else
   {
     // There is a non trivial distribution. We need to generate states and their probabilities.
     // The current implementation is inefficient, but efficiency is of a later concern.
 
-    transition_t::state_probability_list resulting_state_probability_list=
+    transition::state_probability_list resulting_state_probability_list=
                          m_generator->calculate_distribution(dist,m_summand->result_state,*m_substitution);
     if (resulting_state_probability_list.empty())
     {
@@ -595,9 +591,9 @@ void next_state_generator::iterator::increment()
       throw mcrl2::runtime_error("The distribution " + pp(r(dist.distribution())) + " has an empty set of instances.");
     }
     // Set one state as the resulting state, and leave the other states in the resulting_state_probability_list.
-    m_transition.set_target_state(resulting_state_probability_list.front().state());
+    m_transition.target_state = resulting_state_probability_list.front().state();
     resulting_state_probability_list.pop_front();
-    m_transition.set_other_target_states(resulting_state_probability_list);
+    m_transition.other_target_states = resulting_state_probability_list;
   }
 
   std::vector <process::action> actions;
@@ -612,21 +608,19 @@ void next_state_generator::iterator::increment()
     }
     actions[i] = process::action(m_summand->action_label[i].label, data_expression_list(arguments.begin(), arguments.end()));
   }
-  if (m_summand->time_tag==data_expression())  // Check whether the time_tag is valid.
+  if (m_summand->time_tag == data_expression())  // Check whether the time_tag is valid.
   {
-    m_transition.set_action(multi_action(process::action_list(actions.begin(), actions.end())));
+    m_transition.action = multi_action(process::action_list(actions.begin(), actions.end()));
   }
   else
   {
-    m_transition.set_action(
-              multi_action(process::action_list(actions.begin(), actions.end()),
-                           m_generator->m_rewriter(m_summand->time_tag, *m_substitution)));
+    m_transition.action = multi_action(process::action_list(actions.begin(), actions.end()), m_generator->m_rewriter(m_summand->time_tag, *m_substitution));
   }
 
-  m_transition.set_summand_index(m_summand - &m_generator->m_summands[0]);
+  m_transition.summand_index = m_summand - &m_generator->m_summands[0];
 
-  for (variable_list::iterator i = m_summand->variables.begin(); i != m_summand->variables.end(); i++)
+  for (const auto& variable: m_summand->variables)
   {
-    (*m_substitution)[*i] = *i;  // Reset the variable.
+    (*m_substitution)[variable] = variable;  // Reset the variable.
   }
 }
