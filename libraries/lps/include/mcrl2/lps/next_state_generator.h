@@ -19,10 +19,8 @@
 
 #include "mcrl2/atermpp/detail/shared_subset.h"
 #include "mcrl2/data/enumerator.h"
-#include "mcrl2/lps/probabilistic_data_expression.h"
 #include "mcrl2/lps/state.h"
-#include "mcrl2/lps/state_probability_pair.h"
-#include "mcrl2/lps/stochastic_specification.h"
+#include "mcrl2/lps/specification.h"
 
 namespace mcrl2
 {
@@ -52,10 +50,9 @@ class next_state_generator
 
     struct summand_t
     {
-      stochastic_action_summand *summand;
+      action_summand *summand;
       data::variable_list variables;
       data::data_expression condition;
-      stochastic_distribution distribution;
       data::data_expression_vector result_state;
       std::vector<action_internal_t> action_label;
       data::data_expression time_tag;
@@ -88,7 +85,7 @@ class next_state_generator
         summand_subset_t(next_state_generator *generator, bool use_summand_pruning);
 
         /// \brief Constructs the summand subset containing the given commands.
-        summand_subset_t(next_state_generator *generator, const stochastic_action_summand_vector& summands, bool use_summand_pruning);
+        summand_subset_t(next_state_generator *generator, const action_summand_vector& summands, bool use_summand_pruning);
 
       private:
         next_state_generator *m_generator;
@@ -100,25 +97,17 @@ class next_state_generator
         std::vector<std::size_t> m_pruning_parameters;
         substitution_t m_pruning_substitution;
 
-        static bool summand_set_contains(const std::set<stochastic_action_summand>& summand_set, const summand_t& summand);
-        void build_pruning_parameters(const stochastic_action_summand_vector& summands);
+        static bool summand_set_contains(const std::set<action_summand>& summand_set, const summand_t& summand);
+        void build_pruning_parameters(const action_summand_vector& summands);
         bool is_not_false(const summand_t& summand);
         atermpp::detail::shared_subset<summand_t>::iterator begin(const lps::state& state);
     };
 
-    typedef mcrl2::lps::state_probability_pair<lps::state, lps::probabilistic_data_expression> state_probability_pair;
-
     struct transition
     {
-      typedef std::forward_list<state_probability_pair> state_probability_list;
-
-        lps::multi_action action;
-        lps::state target_state;
-        std::size_t summand_index;
-        // The following list contains all but one target states with their probabity.
-        // m_target_state is the other state, with the residual probability, such
-        // that all probabilities add up to 1.
-        state_probability_list other_target_states;
+      lps::multi_action action;
+      lps::state target_state;
+      std::size_t summand_index;
     };
 
     class iterator: public boost::iterator_facade<iterator, const transition, boost::forward_traversal_tag>
@@ -193,7 +182,7 @@ class next_state_generator
     };
 
   protected:
-    stochastic_specification m_specification;
+    specification m_specification;
     rewriter_t m_rewriter;
     substitution_t m_substitution;
     data::enumerator_identifier_generator m_id_generator;
@@ -203,7 +192,6 @@ class next_state_generator
 
     data::variable_vector m_process_parameters;
     std::vector<summand_t> m_summands;
-    transition::state_probability_list m_initial_states;
 
     summand_subset_t m_all_summands;
 
@@ -213,7 +201,7 @@ class next_state_generator
     /// \param rewriter The rewriter used
     /// \param use_enumeration_caching Cache intermediate enumeration results
     /// \param use_summand_pruning Preprocess summands using pruning strategy.
-    next_state_generator(const stochastic_specification& spec,
+    next_state_generator(const specification& spec,
                          const data::rewriter& rewriter,
                          bool use_enumeration_caching = false,
                          bool use_summand_pruning = false);
@@ -245,12 +233,6 @@ class next_state_generator
       return iterator();
     }
 
-    /// \brief Gets the initial state.
-    const transition::state_probability_list& initial_states() const
-    {
-      return m_initial_states;
-    }
-
     /// \brief Returns the rewriter associated with this generator.
     rewriter_t& get_rewriter()
     {
@@ -262,14 +244,6 @@ class next_state_generator
     {
       return m_all_summands;
     }
-
-    // Calculate the set of states with associated probabilities from a symbolic state
-    // and an associated stochastic distribution for the free variables in that state.
-    // The result is a list of closed states with associated probabilities.
-    const transition::state_probability_list calculate_distribution(
-                         const stochastic_distribution& dist,
-                         const data::data_expression_vector& state_args,
-                         substitution_t& sigma);
 };
 
 } // namespace lps

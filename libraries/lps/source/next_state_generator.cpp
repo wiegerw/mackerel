@@ -56,7 +56,7 @@ class state_applier
 };
 
 next_state_generator::next_state_generator(
-  const stochastic_specification& spec,
+  const specification& spec,
   const data::rewriter& rewriter,
   bool use_enumeration_caching,
   bool use_summand_pruning)
@@ -79,7 +79,6 @@ next_state_generator::next_state_generator(
     summand.variables =  order_variables_to_optimise_enumeration(action_summand.summation_variables(),spec.data());
     summand.condition = action_summand.condition();
     const data_expression_list& l= action_summand.next_state(m_specification.process().process_parameters());
-    summand.distribution = action_summand.distribution();
     summand.result_state = data_expression_vector(l.begin(),l.end());
     if (action_summand.multi_action().has_time())
     {
@@ -117,10 +116,6 @@ next_state_generator::next_state_generator(
   mutable_indexed_substitution<> sigma;
   rewriter_class r(m_rewriter,m_substitution);
   data::data_expression_vector initial_symbolic_state(initial_state_raw.begin(),initial_state_raw.end());
-  m_initial_states = calculate_distribution(m_specification.initial_process().distribution(),
-                                            initial_symbolic_state,
-                                            sigma);
-
   m_all_summands = summand_subset_t(this, use_summand_pruning);
 }
 
@@ -145,7 +140,7 @@ next_state_generator::summand_subset_t::summand_subset_t(next_state_generator *g
 }
 
 bool next_state_generator::summand_subset_t::summand_set_contains(
-            const std::set<stochastic_action_summand>& summand_set,
+            const std::set<action_summand>& summand_set,
             const next_state_generator::summand_t& summand)
 {
   return summand_set.count(*summand.summand) > 0;
@@ -153,13 +148,13 @@ bool next_state_generator::summand_subset_t::summand_set_contains(
 
 next_state_generator::summand_subset_t::summand_subset_t(
                 next_state_generator *generator,
-                const stochastic_action_summand_vector& summands,
+                const action_summand_vector& summands,
                 bool use_summand_pruning)
   : m_generator(generator),
     m_use_summand_pruning(use_summand_pruning)
 {
-  std::set<stochastic_action_summand> summand_set;
-  for (const stochastic_action_summand& i: summands)
+  std::set<action_summand> summand_set;
+  for (const action_summand& i: summands)
   {
     summand_set.insert(i);
   }
@@ -253,7 +248,7 @@ static bool parameter_score_compare(const parameter_score& left, const parameter
   return left.score > right.score;
 }
 
-void next_state_generator::summand_subset_t::build_pruning_parameters(const stochastic_action_summand_vector& summands)
+void next_state_generator::summand_subset_t::build_pruning_parameters(const action_summand_vector& summands)
 {
   std::vector < parameter_score> parameters;
 
@@ -365,79 +360,6 @@ next_state_generator::iterator::iterator(next_state_generator *generator, const 
 
   increment();
 }
-
-struct is_not_zero
-{
-  // The argument intentionally does not have the type probabilistic_data_expression,
-  // as this invokes == on probabilistic data expressions, which expects two fractions.
-  // The enumerator can also generate open data expressions, which == on probabilistic_data_expressions
-  // cannot handle.
-  bool operator()(const data_expression& x) const
-  {
-    assert(x.sort()==sort_real::real_());
-    return x!=probabilistic_data_expression::zero();
-  }
-};
-
-const next_state_generator::transition::state_probability_list next_state_generator::calculate_distribution(
-                         const stochastic_distribution& dist,
-                         const data::data_expression_vector& state_args,
-                         substitution_t& sigma)
-{
-  rewriter_class r(m_rewriter,sigma);
-  transition::state_probability_list resulting_state_probability_list;
-  if (dist.variables().empty())
-  {
-    const lps::state target_state(state_args.begin(),state_args.size(),r);
-    resulting_state_probability_list.push_front(state_probability_pair(target_state,probabilistic_data_expression::one()));
-  }
-  else
-  {
-    // Save the expressions for variables that occur in the distribution, and reset these in sigma.
-    std::vector<data_expression> old_values_for_variables;
-    old_values_for_variables.reserve(dist.variables().size());
-    for(const variable& v: dist.variables())
-    {
-      old_values_for_variables.push_back(sigma(v));
-      sigma[v]=v;
-    }
-
-    typedef enumerator_algorithm_with_iterator<rewriter, enumerator_list_element_with_substitution<>, is_not_zero> enumerator_type;
-    const bool throw_exceptions=true;
-    enumerator_type enumerator(m_rewriter, m_specification.data(), m_rewriter, m_id_generator,
-                               data::detail::get_enumerator_variable_limit(), throw_exceptions);
-    std::deque<enumerator_list_element_with_substitution<> > enumerator_solution_deque(1,enumerator_list_element_with_substitution<>(dist.variables(), dist.distribution()));
-    for(enumerator_type::iterator probabilistic_solution = enumerator.begin(sigma, enumerator_solution_deque);
-                                  probabilistic_solution != enumerator.end(); ++probabilistic_solution)
-    {
-      probabilistic_solution->add_assignments(dist.variables(),sigma,m_rewriter);
-      rewriter_class r(m_rewriter,sigma);
-      const lps::state target_state(state_args.begin(),state_args.size(),r);
-      assert(probabilistic_solution->expression()==m_rewriter(dist.distribution(),sigma));
-      if (atermpp::down_cast<probabilistic_data_expression>(probabilistic_solution->expression())>probabilistic_data_expression::zero())
-      {
-        resulting_state_probability_list.push_front(state_probability_pair(target_state,probabilistic_solution->expression()));
-      }
-      // Reset substitution
-      for(const variable& v: dist.variables())
-      {
-        sigma[v]=v;
-      }
-    }
-
-    // Set the old values of sigma back again.
-    std::vector<data_expression>::const_iterator i=old_values_for_variables.begin();
-    for(const variable& v: dist.variables())
-    {
-      sigma[v]=*i;
-      assert(i!=old_values_for_variables.end());
-      i++;
-    }
-  }
-  return resulting_state_probability_list;
-}
-
-
 
 void next_state_generator::iterator::increment()
 {
@@ -565,36 +487,9 @@ void next_state_generator::iterator::increment()
     m_enumeration_log.push_back(valuation);
   }
 
-  // Calculate the effect of the distribution.
-
-  const stochastic_distribution& dist=m_summand->distribution;
-  if (dist.variables().empty())
-  {
-    // There is no distribution, and therefore only one target state is generated
-    const data_expression_vector& state_args=m_summand->result_state;
-    rewriter_class r(m_generator->m_rewriter,*m_substitution);
-    m_transition.target_state = lps::state(state_args.begin(),state_args.size(),r);
-    m_transition.other_target_states = transition::state_probability_list();
-  }
-  else
-  {
-    // There is a non trivial distribution. We need to generate states and their probabilities.
-    // The current implementation is inefficient, but efficiency is of a later concern.
-
-    transition::state_probability_list resulting_state_probability_list=
-                         m_generator->calculate_distribution(dist,m_summand->result_state,*m_substitution);
-    if (resulting_state_probability_list.empty())
-    {
-      // There are no state probability pairs. But this is wrong. The total probabilities should add up to one.
-      // This means there should at least be one probability.
-      rewriter_class r(m_generator->m_rewriter,*m_substitution);
-      throw mcrl2::runtime_error("The distribution " + pp(r(dist.distribution())) + " has an empty set of instances.");
-    }
-    // Set one state as the resulting state, and leave the other states in the resulting_state_probability_list.
-    m_transition.target_state = resulting_state_probability_list.front().state();
-    resulting_state_probability_list.pop_front();
-    m_transition.other_target_states = resulting_state_probability_list;
-  }
+  const data_expression_vector& state_args=m_summand->result_state;
+  rewriter_class r(m_generator->m_rewriter,*m_substitution);
+  m_transition.target_state = lps::state(state_args.begin(),state_args.size(),r);
 
   std::vector <process::action> actions;
   actions.resize(m_summand->action_label.size());
