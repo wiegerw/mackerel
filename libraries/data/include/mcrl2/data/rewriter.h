@@ -34,7 +34,7 @@ namespace data
 // TODO: The rewriter only supports data::mutable_indexed_substitution<> as substitution type. This
 // needs to be fixed, because it is a major source of inefficiency.
 // TODO: The rewriter is implemented in terms of detail::Rewriter. This needs to be fixed, because
-// the class detail::Rewriter is unspecified, and has several problems.q
+// the class detail::Rewriter is unspecified, and has several problems.
 class rewriter
 {
   protected:

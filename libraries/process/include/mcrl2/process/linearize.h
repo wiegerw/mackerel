@@ -527,7 +527,7 @@ lps::specification linearize(process_specification procspec, bool expand_structu
     }
     else
     {
-      throw mcrl2::runtime_error("mcrl3linearizelinearize: unexpected expression " + process::pp(remove_data_parameters_restricted(summand)));
+      throw mcrl2::runtime_error("mcrl3linearize: unexpected expression " + process::pp(remove_data_parameters_restricted(summand)));
     }
     action_summands.emplace_back(summation_variables, condition, a, assignments);
   }
