@@ -37,7 +37,7 @@ class next_state_generator
     typedef data::rewriter::substitution_type rewriter_substitution;
 
   protected:
-    struct action_internal_t
+    struct next_state_action_label
     {
       process::action_label label;
       data::data_expression_vector arguments;
@@ -49,7 +49,7 @@ class next_state_generator
       data::variable_list variables;
       data::data_expression condition;
       data::data_expression_vector result_state;
-      std::vector<action_internal_t> action_label;
+      std::vector<next_state_action_label> action_label;
       data::data_expression time;
 
       std::vector<std::size_t> condition_parameters;
@@ -58,10 +58,10 @@ class next_state_generator
       std::map<enumeration_cache_key, enumeration_cache_value> enumeration_cache;
     };
 
-    struct pruning_tree_node_t
+    struct pruning_tree_node
     {
       atermpp::detail::shared_subset<next_state_summand> summand_subset;
-      std::map<data::data_expression, pruning_tree_node_t> children;
+      std::map<data::data_expression, pruning_tree_node> children;
     };
 
   public:
@@ -80,8 +80,7 @@ class next_state_generator
         summand_subset(next_state_generator* generator, bool use_summand_pruning);
 
         /// \brief Constructs the summand subset containing the given commands.
-        summand_subset(next_state_generator* generator, const action_summand_vector& summands,
-                       bool use_summand_pruning);
+        summand_subset(next_state_generator* generator, const action_summand_vector& summands, bool use_summand_pruning);
 
       private:
         next_state_generator* m_generator;
@@ -89,7 +88,7 @@ class next_state_generator
 
         std::vector<std::size_t> m_summands;
 
-        pruning_tree_node_t m_pruning_tree;
+        pruning_tree_node m_pruning_tree;
         std::vector<std::size_t> m_pruning_parameters;
         rewriter_substitution m_pruning_substitution;
 
@@ -183,8 +182,6 @@ class next_state_generator
         }
 
         void increment();
-
-        bool summand_finished();
     };
 
   protected:
