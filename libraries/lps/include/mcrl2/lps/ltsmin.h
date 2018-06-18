@@ -687,7 +687,7 @@ class pins
         m_generator(stochastic_specification(m_specification), data::rewriter(m_specification.data(), data::used_data_equation_selector(m_specification.data(), lps::find_function_symbols(m_specification), m_specification.global_variables()), data::parse_rewrite_strategy(rewriter_strategy))),
         m_parameters_list(process().process_parameters().begin(), process().process_parameters().end()),
         m_specification_reduced(reduce_specification(m_specification)),
-        m_generator_reduced(stochastic_specification(m_specification_reduced), m_generator.get_rewriter())
+        m_generator_reduced(stochastic_specification(m_specification_reduced), m_generator.rewriter())
     {
       initialize_read_write_groups();
 
@@ -887,7 +887,7 @@ class pins
       // data::data_expression_vector source = state_arguments;
       state source(state_arguments.begin(),nparams);
 
-      next_state_generator::enumerator_queue_t enumeration_queue;
+      next_state_generator::enumerator_queue enumeration_queue;
       for (next_state_generator::iterator i = m_generator.begin(source, &enumeration_queue); i; i++)
       {
         state destination = i->target_state();
@@ -947,7 +947,7 @@ class pins
       }
       state source(state_arguments.begin(),nparams);
 
-      next_state_generator::enumerator_queue_t enumeration_queue;
+      next_state_generator::enumerator_queue enumeration_queue;
       for (next_state_generator::iterator i = (*generator).begin(source, group, &enumeration_queue); i; i++)
       {
         state destination = i->target_state();
@@ -970,7 +970,7 @@ class pins
       }
 
       // get the result by rewriting the guard with the substitution.
-      data::data_expression result = m_generator_reduced.get_rewriter()(
+      data::data_expression result = m_generator_reduced.rewriter()(
           static_cast<data::data_expression>(m_guards.get(guard)),
           substitution);
 

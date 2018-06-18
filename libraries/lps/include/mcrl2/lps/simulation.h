@@ -78,7 +78,7 @@ class simulation
     stochastic_specification m_specification;
     data::rewriter m_rewriter;
     next_state_generator m_generator;
-    next_state_generator::substitution_t m_substitution;
+    next_state_generator::rewriter_substitution m_substitution;
 
     bool m_tau_prioritization;
     std::string m_prioritized_action;
