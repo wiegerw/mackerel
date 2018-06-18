@@ -441,10 +441,7 @@ class enumerator_algorithm
       : R(R_), dataspec(dataspec_), datar(datar_), id_generator(id_generator_), m_max_count(max_count), m_throw_exceptions(throw_exceptions)
     {}
 
-  private:
-    // enumerator_algorithm(const enumerator_algorithm<Rewriter, DataRewriter>&) = delete;
-    enumerator_algorithm(const enumerator_algorithm<Rewriter, DataRewriter>&)
-    {}
+    enumerator_algorithm(const enumerator_algorithm<Rewriter, DataRewriter>&) = delete;
 
   public:
     /// \brief Enumerates the front element of the todo list P.
@@ -663,7 +660,7 @@ class enumerator_algorithm_with_iterator: public enumerator_algorithm<Rewriter, 
           count += E->next(*P, *sigma, accept);
         }
 
-        iterator(Filter accept_ = Filter())
+        explicit iterator(Filter accept_ = Filter())
           : E(nullptr), sigma(nullptr), P(&default_deque()), accept(accept_), count(0)
         { }
 
