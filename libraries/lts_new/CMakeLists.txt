@@ -1,4 +1,4 @@
-project(lts)
+project(lts_new)
 
 #file(GLOB SOURCES "source/*.cpp")
 #add_library(lps ${SOURCES})

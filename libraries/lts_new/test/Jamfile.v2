@@ -1,6 +1,6 @@
 import testing ;
 
-project libraries/lts/test
+project libraries/lts_new/test
    : requirements
        <library>/aterm//aterm
        <library>/core//core
@@ -10,4 +10,4 @@ project libraries/lts/test
        <library>/utilities//utilities
    ;
 
-test-suite lts : [ test_all r ] ;
+test-suite lts_new : [ test_all r ] ;

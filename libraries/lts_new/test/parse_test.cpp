@@ -13,7 +13,7 @@
 
 #include <iostream>
 #include <boost/test/included/unit_test_framework.hpp>
-#include "mcrl2/lts/parse.h"
+#include "mcrl2/lts_new/parse.h"
 
 using namespace mcrl2;
 

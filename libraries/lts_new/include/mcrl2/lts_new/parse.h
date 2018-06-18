@@ -16,7 +16,7 @@
 #include <iostream>
 #include <map>
 #include <string>
-#include "mcrl2/lts/lts.h"
+#include "mcrl2/lts_new/lts.h"
 #include "mcrl2/utilities/exception.h"
 #include "mcrl2/utilities/text_utility.h"
 

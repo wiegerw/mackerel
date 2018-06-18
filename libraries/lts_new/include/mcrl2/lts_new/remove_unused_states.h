@@ -12,7 +12,7 @@
 #ifndef MCRL2_LTS_REMOVE_UNUSED_STATES_H
 #define MCRL2_LTS_REMOVE_UNUSED_STATES_H
 
-#include "mcrl2/lts/lts.h"
+#include "mcrl2/lts_new/lts.h"
 
 namespace mcrl2 {
 

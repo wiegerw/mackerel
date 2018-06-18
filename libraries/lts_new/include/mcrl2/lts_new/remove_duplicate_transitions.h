@@ -13,7 +13,7 @@
 #define MCRL2_LTS_REMOVE_DUPLICATE_TRANSITIONS_H
 
 #include <set>
-#include "mcrl2/lts/lts.h"
+#include "mcrl2/lts_new/lts.h"
 
 namespace mcrl2 {
 

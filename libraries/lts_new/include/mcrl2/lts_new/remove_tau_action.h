@@ -13,9 +13,9 @@
 #define MCRL2_LTS_REMOVE_TAU_ACTION_H
 
 #include <map>
-#include "mcrl2/lts/lts.h"
-#include "mcrl2/lts/remove_duplicate_transitions.h"
-#include "mcrl2/lts/remove_unused_states.h"
+#include "mcrl2/lts_new/lts.h"
+#include "mcrl2/lts_new/remove_duplicate_transitions.h"
+#include "mcrl2/lts_new/remove_unused_states.h"
 
 namespace mcrl2 {
 

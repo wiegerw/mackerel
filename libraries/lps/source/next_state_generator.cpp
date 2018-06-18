@@ -64,9 +64,7 @@ next_state_generator::next_state_generator(
       summand.action_label.push_back(action_label);
     }
 
-    for (std::size_t j = 0;
-         j < m_process_parameters.size();
-         j++)
+    for (std::size_t j = 0; j < m_process_parameters.size(); j++)
     {
       if (data::search_free_variable(action_summand.condition(), m_process_parameters[j]))
       {
@@ -102,9 +100,7 @@ next_state_generator::summand_subset::summand_subset(next_state_generator* gener
   }
   else
   {
-    for (std::size_t i = 0;
-         i < generator->m_summands.size();
-         i++)
+    for (std::size_t i = 0; i < generator->m_summands.size(); i++)
     {
       m_summands.push_back(i);
     }
@@ -140,9 +136,7 @@ next_state_generator::summand_subset::summand_subset(
   }
   else
   {
-    for (std::size_t i = 0;
-         i < generator->m_summands.size();
-         i++)
+    for (std::size_t i = 0; i < generator->m_summands.size(); i++)
     {
       if (summand_set.count(*generator->m_summands[i].summand) > 0)
       {
@@ -228,9 +222,7 @@ void next_state_generator::summand_subset::build_pruning_parameters(const action
 {
   std::vector<parameter_score> parameters;
 
-  for (std::size_t i = 0;
-       i < m_generator->m_process_parameters.size();
-       i++)
+  for (std::size_t i = 0; i < m_generator->m_process_parameters.size(); i++)
   {
     parameters.emplace_back(i, 0);
     for (const auto& summand : summands)
