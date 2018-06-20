@@ -1,0 +1,18 @@
+project lps3lts
+   : requirements
+       <library>/aterm//aterm
+       <library>/core//core
+       <library>/data//data
+       <library>/lps//lps
+       <library>/lts//lts
+       <library>/process//process
+       <library>/utilities//utilities
+       <library>/dparser//dparser
+   ;
+
+exe lps32lts
+  :
+    lps32lts.cpp
+  ;
+
+install dist : lps32lts : <variant>debug:<location>../../../install_debug/bin <variant>release:<location>../../../install/bin ;
