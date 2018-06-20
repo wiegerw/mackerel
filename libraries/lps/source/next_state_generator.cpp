@@ -147,6 +147,23 @@ next_state_generator::iterator::iterator(next_state_generator* generator, const 
   increment();
 }
 
+void next_state_generator::iterator::check_condition_rewrites_to_true() const
+{
+  if (m_enumeration_iterator->expression() != data::sort_bool::true_())
+  {
+    assert(m_enumeration_iterator->expression() != data::sort_bool::false_());
+
+    // Reduce condition as much as possible, and give a hint of the original condition in the error message.
+    data::data_expression reduced_condition(m_generator->m_rewriter(m_summand->condition, *m_substitution));
+    std::string printed_condition(data::pp(m_summand->condition).substr(0, 300));
+
+    throw mcrl2::runtime_error("Expression " + data::pp(reduced_condition) +
+                               " does not rewrite to true or false in the condition "
+                               + printed_condition
+                               + (printed_condition.size() >= 300 ? "..." : ""));
+  }
+}
+
 void next_state_generator::iterator::increment()
 {
   while (!m_summand ||
@@ -238,7 +255,8 @@ void next_state_generator::iterator::increment()
   {
     m_enumeration_iterator->add_assignments(m_summand->variables, *m_substitution, m_generator->m_rewriter);
 
-    // If we failed to exactly rewrite the condition to true, nextstate generation fails.
+    check_condition_rewrites_to_true();
+
     if (m_enumeration_iterator->expression() != data::sort_bool::true_())
     {
       assert(m_enumeration_iterator->expression() != data::sort_bool::false_());

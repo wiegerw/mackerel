@@ -151,6 +151,8 @@ class next_state_generator
           return m_transition;
         }
 
+        void check_condition_rewrites_to_true() const;
+
         void increment();
     };
 
