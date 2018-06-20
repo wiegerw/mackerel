@@ -1,0 +1,13 @@
+project lts ;
+
+lib lts
+       : [ glob ../source/*.cpp ]
+         [ glob ../source/*.c ]
+         #../../../doc/specs/fsm-syntax.g
+       :
+         <library>/aterm//aterm
+         <library>/core//core
+         <library>/data//data
+         <library>/utilities//utilities
+         #<dparser-options>"-A -H1 -i fsm"
+       ;

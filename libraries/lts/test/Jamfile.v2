@@ -1,0 +1,15 @@
+import testing ;
+
+project libraries/lts/test
+   : requirements            
+       <library>/aterm//aterm
+       <library>/core//core
+       <library>/data//data
+       <library>/dparser//dparser
+       <library>/lps//lps
+       <library>/lts//lts
+       <library>/process//process
+       <library>/utilities//utilities
+   ;
+
+test-suite lts : [ test_all r ] ;
