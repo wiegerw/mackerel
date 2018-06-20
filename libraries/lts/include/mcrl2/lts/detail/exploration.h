@@ -16,7 +16,6 @@
 #include <unordered_set>
 
 #include "mcrl2/atermpp/indexed_set.h"
-#include "mcrl2/trace/trace.h"
 #include "mcrl2/lps/next_state_generator.h"
 #include "mcrl2/lts/lts_lts.h"
 #include "mcrl2/lts/detail/queue.h"

@@ -14,6 +14,7 @@
 #define MCRL2_LTS_DETAIL_LTS_GENERATION_OPTIONS_H
 
 #include "mcrl2/data/rewrite_strategy.h"
+#include "mcrl2/lps/specification.h"
 #include "mcrl2/lts/detail/exploration_strategy.h"
 #include "mcrl2/process/action_parse.h"
 
