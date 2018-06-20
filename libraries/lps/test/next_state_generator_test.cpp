@@ -1,4 +1,5 @@
 // Author(s): Wieger Wesselink
+//            Ruud Koolen
 // Copyright: see the accompanying file COPYING or copy at
 // https://svn.win.tue.nl/trac/MCRL2/browser/trunk/COPYING
 //
@@ -24,25 +25,24 @@ using namespace mcrl2::data::detail;
 using namespace mcrl2::lps;
 using namespace mcrl2::lps::detail;
 
-void test_initial_state_successors(const stochastic_specification& lps_spec)
+void test_initial_state_successors(const specification& lpsspec)
 {
-  data::rewriter rewriter(lps_spec.data());
-  next_state_generator generator(lps_spec, rewriter);
+  data::rewriter rewriter(lpsspec.data());
+  next_state_generator generator(lpsspec, rewriter);
 
-  next_state_generator::enumerator_queue_t enumeration_queue;
-  for (next_state_generator::iterator it = generator.begin(generator.initial_states().front().state(), 
-                  &enumeration_queue); it != generator.end(); it++)
+  next_state_generator::enumerator_queue enumeration_queue;
+  for (auto it = generator.begin(generator.initial_state(), &enumeration_queue); it != generator.end(); it++)
   {
-    std::cout << atermpp::pp(it->target_state()) << std::endl;
+    std::cout << atermpp::pp(it->target_state) << std::endl;
   }
 }
 
-void test_next_state_generator(const stochastic_specification& lps_spec, std::size_t expected_states, std::size_t expected_transitions, std::size_t expected_transition_labels, bool enumeration_caching, bool summand_pruning, bool per_summand)
+void test_next_state_generator(const specification& lpsspec, std::size_t expected_states, std::size_t expected_transitions, std::size_t expected_transition_labels, bool enumeration_caching, bool per_summand)
 {
-  data::rewriter rewriter(lps_spec.data());
-  next_state_generator generator(lps_spec, rewriter, enumeration_caching, summand_pruning);
+  data::rewriter rewriter(lpsspec.data());
+  next_state_generator generator(lpsspec, rewriter, enumeration_caching);
 
-  state initial_state = generator.initial_states().front().state(); // Only the first state of the set of probabilistic states is considered.
+  state initial_state = generator.initial_state();
 
   std::set<state> visited;
   std::set<state> seen;
@@ -59,32 +59,32 @@ void test_next_state_generator(const stochastic_specification& lps_spec, std::si
 
     if (per_summand)
     {
-      next_state_generator::enumerator_queue_t enumeration_queue;
-      for (std::size_t i = 0; i < lps_spec.process().action_summands().size(); ++i)
+      next_state_generator::enumerator_queue enumeration_queue;
+      for (std::size_t i = 0; i < lpsspec.process().action_summands().size(); ++i)
       {
-        for (next_state_generator::iterator it = generator.begin(q.front(), i, &enumeration_queue); it != generator.end(); it++)
+        for (auto it = generator.begin(q.front(), i, &enumeration_queue); it != generator.end(); it++)
         {
-          transition_labels.insert(it->action());
+          transition_labels.insert(it->action);
           ++transitions;
-          if (seen.find(it->target_state()) == seen.end())
+          if (seen.find(it->target_state) == seen.end())
           {
-            q.push(it->target_state());
-            seen.insert(it->target_state());
+            q.push(it->target_state);
+            seen.insert(it->target_state);
           }
         }
       }
     }
     else
     {
-      next_state_generator::enumerator_queue_t enumeration_queue;
-      for (next_state_generator::iterator it = generator.begin(q.front(), &enumeration_queue); it != generator.end(); it++)
+      next_state_generator::enumerator_queue enumeration_queue;
+      for (auto it = generator.begin(q.front(), &enumeration_queue); it != generator.end(); it++)
       {
-        transition_labels.insert(it->action());
+        transition_labels.insert(it->action);
         ++transitions;
-        if (seen.find(it->target_state()) == seen.end())
+        if (seen.find(it->target_state) == seen.end())
         {
-          q.push(it->target_state());
-          seen.insert(it->target_state());
+          q.push(it->target_state);
+          seen.insert(it->target_state);
         }
       }
     }
@@ -109,26 +109,26 @@ BOOST_AUTO_TEST_CASE(single_state_test)
     "init P(1);\n"
   );
 
-  stochastic_specification spec;
+  specification spec;
   parse_lps(text,spec);
   test_initial_state_successors(spec);
   // Test all 2**3 possible feature flags
-  for (std::size_t i = 0; i < 8; i++)
+  for (std::size_t i = 0; i < 4; i++)
   {
-    test_next_state_generator(spec, 2, 1, 1, i & 1, i & 2, i & 4);
+    test_next_state_generator(spec, 2, 1, 1, i & 1, i & 2);
   }
 }
 
 BOOST_AUTO_TEST_CASE(test_abp)
 {
-  stochastic_specification spec;
+  specification spec;
   parse_lps(LINEAR_ABP,spec);
 
   test_initial_state_successors(spec);
   // Test all 2**3 possible feature flags
-  for (std::size_t i = 0; i < 8; i++)
+  for (std::size_t i = 0; i < 4; i++)
   {
-    test_next_state_generator(spec, 74, 92, 19, i & 1, i & 2, i & 4);
+    test_next_state_generator(spec, 74, 92, 19, i & 1, i & 2);
   }
 }
 
@@ -144,13 +144,13 @@ BOOST_AUTO_TEST_CASE(test_non_true_condition)
     "     + delta;\n"
     "init P(1);\n"
   );
-  stochastic_specification spec;
+  specification spec;
   parse_lps(text,spec);
-  for (std::size_t i = 0; i < 8; i++)
+  for (std::size_t i = 0; i < 4; i++)
   {
     // The respective sizes do not matter here, since we should get an exception in the nextstate
     // generator.
-    BOOST_CHECK_THROW(test_next_state_generator(spec, 0, 0, 0, i&1, i&2, i&4), mcrl2::runtime_error);
+    BOOST_CHECK_THROW(test_next_state_generator(spec, 0, 0, 0, i&1, i&2), mcrl2::runtime_error);
   }
 
 }

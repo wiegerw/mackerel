@@ -1,6 +1,7 @@
-// Author(s): Ruud Koolen
+// Author(s): Wieger Wesselink 2010 - 2018
+//            Ruud Koolen
 // Copyright: see the accompanying file COPYING or copy at
-// https://svn.win.tue.nl/trac/MCRL2/browser/trunk/COPYING
+// https://github.com/mCRL2org/mCRL2/blob/master/COPYING
 //
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE_1_0.txt or copy at
@@ -31,7 +32,6 @@ class next_state_generator
   public:
     typedef atermpp::term_appl<data::data_expression> enumeration_cache_key;
     typedef std::list<data::data_expression_list> enumeration_cache_value;
-
     typedef data::enumerator_algorithm_with_iterator<> enumerator;
     typedef std::deque<data::enumerator_list_element_with_substitution<>> enumerator_queue;
     typedef data::rewriter::substitution_type rewriter_substitution;
@@ -54,14 +54,7 @@ class next_state_generator
 
       std::vector<std::size_t> condition_parameters;
       atermpp::function_symbol condition_arguments_function;
-      atermpp::aterm_appl condition_arguments_function_dummy;
       std::map<enumeration_cache_key, enumeration_cache_value> enumeration_cache;
-    };
-
-    struct pruning_tree_node
-    {
-      atermpp::detail::shared_subset<next_state_summand> summand_subset;
-      std::map<data::data_expression, pruning_tree_node> children;
     };
 
   public:
@@ -69,37 +62,22 @@ class next_state_generator
 
     class summand_subset
     {
-        friend class next_state_generator;
-        friend class next_state_generator::iterator;
+      friend class next_state_generator;
+      friend class next_state_generator::iterator;
 
       public:
         /// \brief Trivial constructor. Constructs an invalid command subset.
         summand_subset() = default;
 
         /// \brief Constructs the full summand subset for the given generator.
-        summand_subset(next_state_generator* generator, bool use_summand_pruning);
+        explicit summand_subset(next_state_generator *generator);
 
         /// \brief Constructs the summand subset containing the given commands.
-        summand_subset(next_state_generator* generator, const action_summand_vector& summands, bool use_summand_pruning);
+        summand_subset(next_state_generator* generator, const action_summand_vector& summands);
 
       private:
-        next_state_generator* m_generator;
-        bool m_use_summand_pruning;
-
+        next_state_generator *m_generator = nullptr;
         std::vector<std::size_t> m_summands;
-
-        pruning_tree_node m_pruning_tree;
-        std::vector<std::size_t> m_pruning_parameters;
-        rewriter_substitution m_pruning_substitution;
-
-        static bool
-        summand_set_contains(const std::set<action_summand>& summand_set, const next_state_summand& summand);
-
-        void build_pruning_parameters(const action_summand_vector& summands);
-
-        bool is_not_false(const next_state_summand& summand);
-
-        atermpp::detail::shared_subset<next_state_summand>::iterator begin(const lps::state& state);
     };
 
     struct transition
@@ -119,11 +97,9 @@ class next_state_generator
 
         bool m_single_summand;
         std::size_t m_single_summand_index;
-        bool m_use_summand_pruning;
         std::vector<std::size_t>::iterator m_summand_iterator;
         std::vector<std::size_t>::iterator m_summand_iterator_end;
-        atermpp::detail::shared_subset<next_state_summand>::iterator m_summand_subset_iterator;
-        next_state_summand* m_summand;
+        next_state_summand *m_summand;
 
         bool m_cached;
         enumeration_cache_value::iterator m_enumeration_cache_iterator;
@@ -132,12 +108,10 @@ class next_state_generator
         bool m_caching;
         enumeration_cache_key m_enumeration_cache_key;
         enumeration_cache_value m_enumeration_log;
-
         enumerator_queue* m_enumeration_queue;
 
         /// \brief Enumerate <variables, phi> with substitution sigma.
-        void enumerate(const data::variable_list& variables, const data::data_expression& phi,
-                       data::mutable_indexed_substitution<>& sigma)
+        void enumerate(const data::variable_list& variables, const data::data_expression& phi, data::mutable_indexed_substitution<>& sigma)
         {
           m_enumeration_queue->clear();
           m_enumeration_queue->push_back(data::enumerator_list_element_with_substitution<>(variables, phi));
@@ -145,11 +119,9 @@ class next_state_generator
           {
             m_enumeration_iterator = m_generator->m_enumerator.begin(sigma, *m_enumeration_queue);
           }
-          catch (mcrl2::runtime_error& e)
+          catch (mcrl2::runtime_error &e)
           {
-            throw mcrl2::runtime_error(
-                    std::string(e.what()) + "\nProblem occurred when enumerating variables " + data::pp(variables) +
-                    " in " + data::pp(phi));
+            throw mcrl2::runtime_error(std::string(e.what()) + "\nProblem occurred when enumerating variables " + data::pp(variables) + " in " + data::pp(phi));
           }
         }
 
@@ -157,11 +129,9 @@ class next_state_generator
       public:
         iterator() = default;
 
-        iterator(next_state_generator* generator, const lps::state& state, rewriter_substitution* substitution,
-                 summand_subset& summand_subset, enumerator_queue* enumeration_queue);
+        iterator(next_state_generator* generator, const lps::state& state, rewriter_substitution* substitution, summand_subset& summand_subset, enumerator_queue* enumeration_queue);
 
-        iterator(next_state_generator* generator, const lps::state& state, rewriter_substitution* substitution,
-                 std::size_t summand_index, enumerator_queue* enumeration_queue);
+        iterator(next_state_generator* generator, const lps::state& state, rewriter_substitution* substitution, std::size_t summand_index, enumerator_queue* enumeration_queue);
 
         explicit operator bool() const
         {
@@ -173,7 +143,7 @@ class next_state_generator
 
         bool equal(const iterator& other) const
         {
-          return (!(bool) *this && !(bool) other) || (this == &other);
+          return (!(bool)*this && !(bool)other) || (this == &other);
         }
 
         const transition& dereference() const
@@ -195,6 +165,7 @@ class next_state_generator
 
     data::variable_vector m_process_parameters;
     std::vector<next_state_summand> m_summands;
+    lps::state m_initial_state;
 
     summand_subset m_all_summands;
 
@@ -203,11 +174,10 @@ class next_state_generator
     /// \param spec The process specification
     /// \param rewriter The rewriter used
     /// \param use_enumeration_caching Cache intermediate enumeration results
-    /// \param use_summand_pruning Preprocess summands using pruning strategy.
     next_state_generator(const specification& spec,
                          const data::rewriter& rewriter,
-                         bool use_enumeration_caching = false,
-                         bool use_summand_pruning = false);
+                         bool use_enumeration_caching = false
+                        );
 
     /// \brief Returns an iterator for generating the successors of the given state.
     iterator begin(const state& state, enumerator_queue* enumeration_queue)
@@ -234,6 +204,12 @@ class next_state_generator
       return iterator();
     }
 
+    /// \brief Gets the initial state.
+    lps::state initial_state() const
+    {
+      return m_initial_state;
+    }
+
     /// \brief Returns the rewriter associated with this generator.
     data::rewriter& rewriter()
     {
@@ -241,7 +217,7 @@ class next_state_generator
     }
 
     /// \brief Returns a reference to the summand subset containing all summands.
-    summand_subset& full_subset()
+    summand_subset& all_summands()
     {
       return m_all_summands;
     }

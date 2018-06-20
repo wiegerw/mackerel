@@ -191,22 +191,19 @@ int test_main(int argc, char** argv)
   check_info(linearise(case_summands));
   check_info(linearise(case_last));
 
-  lps::stochastic_specification model=linearise(case_no_influenced_parameters);
+  specification model = remove_stochastic_operators(linearise(case_no_influenced_parameters));
 
   if (1 < argc)
   {
     load_lps(model, argv[1]);
 
     model.process().deadlock_summands().clear();
-
-    data::rewriter        rewriter(model.data());
-
+    data::rewriter rewriter(model.data());
     next_state_generator explorer(model, rewriter);
+    std::stack<state> stack;
+    std::set<state> known;
 
-    std::stack< state >     stack;
-    std::set< state >   known;
-
-    stack.push(explorer.initial_states().front().state());
+    stack.push(explorer.initial_state());
     known.insert(stack.top());
 
     while (!stack.empty())
@@ -216,14 +213,14 @@ int test_main(int argc, char** argv)
 
       for (std::size_t i = 0; i < model.process().summand_count(); ++i)
       {
-        next_state_generator::enumerator_queue_t enumeration_queue;
-        for(next_state_generator::iterator j = explorer.begin(current, i, &enumeration_queue); j != explorer.end(); ++j)
+        next_state_generator::enumerator_queue enumeration_queue;
+        for (auto j = explorer.begin(current, i, &enumeration_queue); j != explorer.end(); ++j)
         {
-          if (known.find(j->target_state()) == known.end())
+          if (known.find(j->target_state) == known.end())
           {
-            std::cerr << atermpp::pp(j->target_state()) << std::endl;
-            known.insert(j->target_state());
-            stack.push(j->target_state());
+            std::cerr << j->target_state << std::endl;
+            known.insert(j->target_state);
+            stack.push(j->target_state);
           }
         }
       }
