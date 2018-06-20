@@ -12,8 +12,8 @@
 #include <sstream>
 
 #include "mcrl2/core/detail/print_utility.h"
-#include "mcrl2/lts/parse.h"
-#include "mcrl2/lts/remove_tau_action.h"
+#include "mcrl2/lts_new/parse.h"
+#include "mcrl2/lts_new/remove_tau_action.h"
 #include "mcrl2/utilities/detail/command.h"
 #include "mcrl2/utilities/detail/io.h"
 #include "mcrl2/utilities/detail/transform_tool.h"

@@ -1,5 +1,6 @@
 project mcrl3/tools ;
 
+build-project lps32lts ;
 build-project ltstransform ;
 build-project mcrl32lps ;
 build-project mcrl3linearize ;

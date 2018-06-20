@@ -17,8 +17,10 @@ project mcrl2
        <include>libraries/core/include
        <include>libraries/data/include
        <include>libraries/lps/include
+       <include>libraries/lts/include
        <include>libraries/lts_new/include
        <include>libraries/process/include
+       <include>libraries/trace/include
        <include>libraries/utilities/include
 
        #--- Windows settings ---#
@@ -65,6 +67,7 @@ use-project /aterm         : libraries/atermpp/build ;
 use-project /core          : libraries/core/build ;
 use-project /data          : libraries/data/build ;
 use-project /lps           : libraries/lps/build ;
+use-project /lts           : libraries/lts/build ;
 use-project /process       : libraries/process/build ;
 use-project /utilities     : libraries/utilities/build ;
 

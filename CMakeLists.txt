@@ -33,6 +33,7 @@ add_subdirectory(libraries/atermpp)
 add_subdirectory(libraries/core)
 add_subdirectory(libraries/data)
 add_subdirectory(libraries/lps)
+add_subdirectory(libraries/lts)
 add_subdirectory(libraries/process)
 add_subdirectory(libraries/utilities)
 
