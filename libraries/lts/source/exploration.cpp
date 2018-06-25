@@ -182,7 +182,6 @@ bool lps2lts_algorithm::initialise_lts_generation(const lts_generation_options& 
     }
   }
   m_generator = std::make_unique<lps::next_state_generator>(lpsspec, rewriter, m_options.use_enumeration_caching);
-  m_main_subset = m_generator->all_summands();
 
   if (m_options.detect_deadlock)
   {
@@ -298,7 +297,7 @@ void lps2lts_algorithm::generate_transitions(const lps::state& state,
   try
   {
     enumeration_queue.clear();
-    lps::next_state_generator::iterator it(m_generator->begin(state, m_main_subset, &enumeration_queue));
+    lps::next_state_generator::iterator it(m_generator->begin(state, &enumeration_queue));
     while (it)
     {
       transitions.push_back(*it++);

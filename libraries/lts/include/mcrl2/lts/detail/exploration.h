@@ -34,9 +34,6 @@ class lps2lts_algorithm
     // TODO: this generator should not be stored as a pointer
     std::unique_ptr<lps::next_state_generator> m_generator;
 
-    // TODO: this summand_subset should be an implementation detail of the next state generator.
-    lps::next_state_generator::summand_subset m_main_subset;
-
     atermpp::indexed_set<lps::state> m_state_numbers;
     atermpp::indexed_set<process::action_list> m_action_label_numbers;
     std::size_t m_number_of_states = 0;
