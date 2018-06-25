@@ -16,8 +16,11 @@
 #include "mcrl2/lps/detail/instantiate_global_variables.h"
 #include "mcrl2/lps/probabilistic_data_expression.h"
 #include "mcrl2/lps/one_point_rule_rewrite.h"
+#include "mcrl2/lts/detail/liblts_swap_to_from_probabilistic_lts.h"
+#include "mcrl2/lts/detail/lts_convert.h"
 #include "mcrl2/lts/detail/exploration.h"
 #include "mcrl2/lts/detail/counter_example.h"
+#include "mcrl2/lts/probabilistic_lts.h"
 
 namespace mcrl2 {
 
@@ -56,8 +59,8 @@ void lps2lts_algorithm::on_start_exploration()
   }
   else if (m_options.outformat != lts_none)
   {
-    auto m_initial_state_number = m_output_lts.add_state(state_label_lts(m_generator->initial_state()));
-    m_output_lts.set_initial_state(m_initial_state_number);
+    auto initial_state_number = m_output_lts.add_state(state_label_lts(m_generator->initial_state()));
+    m_output_lts.set_initial_state(initial_state_number);
   }
 }
 
@@ -109,6 +112,26 @@ void lps2lts_algorithm::on_end_exploration()
       case lts_lts:
       {
         m_output_lts.save(m_options.filename);
+        break;
+      }
+      case lts_fsm:
+      {
+        // TODO: get rid of this ugly code
+        probabilistic_lts_lts_t output_lts;
+        probabilistic_lts_fsm_t fsm;
+        detail::translate_to_probabilistic_lts(m_output_lts, output_lts);
+        detail::lts_convert(output_lts, fsm);
+        fsm.save(m_options.filename);
+        break;
+      }
+      case lts_dot:
+      {
+        // TODO: get rid of this ugly code
+        probabilistic_lts_lts_t output_lts;
+        probabilistic_lts_dot_t dot;
+        detail::translate_to_probabilistic_lts(m_output_lts, output_lts);
+        detail::lts_convert(output_lts, dot);
+        dot.save(m_options.filename);
         break;
       }
       default:
