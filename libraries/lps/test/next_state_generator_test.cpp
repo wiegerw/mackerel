@@ -57,26 +57,24 @@ void test_next_state_generator(const specification& lpsspec, std::size_t expecte
   {
     visited.insert(q.front());
 
-// N.B. In Mackerel the per_summand option is currently not supported.
-//
-//    if (per_summand)
-//    {
-//      next_state_generator::enumerator_queue enumeration_queue;
-//      for (std::size_t i = 0; i < lpsspec.process().action_summands().size(); ++i)
-//      {
-//        for (auto it = generator.begin(q.front(), i, &enumeration_queue); it != generator.end(); it++)
-//        {
-//          transition_labels.insert(it->action);
-//          ++transitions;
-//          if (seen.find(it->target_state) == seen.end())
-//          {
-//            q.push(it->target_state);
-//            seen.insert(it->target_state);
-//          }
-//        }
-//      }
-//    }
-//    else
+    if (per_summand)
+    {
+      next_state_generator::enumerator_queue enumeration_queue;
+      for (std::size_t i = 0; i < lpsspec.process().action_summands().size(); ++i)
+      {
+        for (auto it = generator.begin(q.front(), i, &enumeration_queue); it != generator.end(); it++)
+        {
+          transition_labels.insert(it->action);
+          ++transitions;
+          if (seen.find(it->target_state) == seen.end())
+          {
+            q.push(it->target_state);
+            seen.insert(it->target_state);
+          }
+        }
+      }
+    }
+    else
     {
       next_state_generator::enumerator_queue enumeration_queue;
       for (auto it = generator.begin(q.front(), &enumeration_queue); it != generator.end(); it++)

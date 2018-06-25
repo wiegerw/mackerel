@@ -60,26 +60,6 @@ class next_state_generator
   public:
     class iterator;
 
-    class summand_subset
-    {
-      friend class next_state_generator;
-      friend class next_state_generator::iterator;
-
-      public:
-        /// \brief Trivial constructor. Constructs an invalid command subset.
-        summand_subset() = default;
-
-        /// \brief Constructs the full summand subset for the given generator.
-        explicit summand_subset(next_state_generator *generator);
-
-        /// \brief Constructs the summand subset containing the given commands.
-        summand_subset(next_state_generator* generator, const action_summand_vector& summands);
-
-      private:
-        next_state_generator *m_generator = nullptr;
-        std::vector<std::size_t> m_summands;
-    };
-
     struct transition
     {
       lps::multi_action action;
@@ -95,8 +75,8 @@ class next_state_generator
         lps::state m_state;
         rewriter_substitution* m_substitution;
 
-        std::vector<std::size_t>::iterator m_summand_iterator;
-        std::vector<std::size_t>::iterator m_summand_iterator_end;
+        std::vector<next_state_summand>::iterator m_summands_first;
+        std::vector<next_state_summand>::iterator m_summands_last;
         next_state_summand* m_summand;
 
         bool m_cached;
@@ -127,7 +107,7 @@ class next_state_generator
       public:
         iterator() = default;
 
-        iterator(next_state_generator* generator, const lps::state& state, rewriter_substitution* substitution, summand_subset& summand_subset, enumerator_queue* enumeration_queue)
+        iterator(next_state_generator* generator, const lps::state& state, rewriter_substitution* substitution, enumerator_queue* enumeration_queue)
           : m_generator(generator),
             m_state(state),
             m_substitution(substitution),
@@ -135,35 +115,34 @@ class next_state_generator
             m_caching(false),
             m_enumeration_queue(enumeration_queue)
         {
-          m_summand_iterator = summand_subset.m_summands.begin();
-          m_summand_iterator_end = summand_subset.m_summands.end();
+          m_summands_first = generator->m_summands.begin();
+          m_summands_last = generator->m_summands.end();
+          std::size_t j = 0;
+          for (auto i = state.begin(); i != state.end(); ++i, ++j)
+          {
+            (*m_substitution)[generator->m_process_parameters[j]] = *i;
+          }
+          increment();
+        }
+
+        iterator(next_state_generator* generator, const lps::state& state, rewriter_substitution* substitution, std::size_t summand_index, enumerator_queue* enumeration_queue)
+          : m_generator(generator),
+            m_state(state),
+            m_substitution(substitution),
+            m_summand(nullptr),
+            m_caching(false),
+            m_enumeration_queue(enumeration_queue)
+        {
+          m_summands_first = generator->m_summands.begin() + summand_index;
+          m_summands_last = generator->m_summands.begin() + summand_index + 1;
 
           std::size_t j = 0;
           for (auto i = state.begin(); i != state.end(); ++i, ++j)
           {
             (*m_substitution)[generator->m_process_parameters[j]] = *i;
           }
-
           increment();
         }
-
-//        iterator(next_state_generator* generator, const lps::state& state, rewriter_substitution* substitution, std::size_t summand_index, enumerator_queue* enumeration_queue)
-//          : m_generator(generator),
-//            m_state(state),
-//            m_substitution(substitution),
-//            m_single_summand(true),
-//            m_single_summand_index(summand_index),
-//            m_summand(nullptr),
-//            m_caching(false),
-//            m_enumeration_queue(enumeration_queue)
-//        {
-//          std::size_t j = 0;
-//          for (auto i = state.begin(); i != state.end(); ++i, ++j)
-//          {
-//            (*m_substitution)[generator->m_process_parameters[j]] = *i;
-//          }
-//          increment();
-//        }
 
         explicit operator bool() const
         {
@@ -216,12 +195,12 @@ class next_state_generator
               m_summand->enumeration_cache[m_enumeration_cache_key] = m_enumeration_log;
             }
 
-            if (m_summand_iterator == m_summand_iterator_end)
+            if (m_summands_first == m_summands_last)
             {
               m_generator = nullptr;
               return;
             }
-            m_summand = &(m_generator->m_summands[*m_summand_iterator++]);
+            m_summand = &(*m_summands_first++);
 
             if (m_generator->m_use_enumeration_caching)
             {
@@ -355,8 +334,6 @@ class next_state_generator
     std::vector<next_state_summand> m_summands;
     lps::state m_initial_state;
 
-    summand_subset m_all_summands;
-
   public:
     /// \brief Constructor
     /// \param spec The process specification
@@ -421,13 +398,12 @@ class next_state_generator
       data::data_expression_list initial_state_raw = m_specification.initial_process().state(m_specification.process().process_parameters());
       data::mutable_indexed_substitution<> sigma;
       m_initial_state = state(initial_state_raw.begin(),initial_state_raw.size(), [&](const data::data_expression& x) { return m_rewriter(x, m_substitution); });
-      m_all_summands = summand_subset(this);
     }
 
     /// \brief Returns an iterator for generating the successors of the given state.
     iterator begin(const state& state, enumerator_queue* enumeration_queue)
     {
-      return iterator(this, state, &m_substitution, m_all_summands, enumeration_queue);
+      return iterator(this, state, &m_substitution, enumeration_queue);
     }
 
 //    /// \brief Returns an iterator for generating the successors of the given state.
@@ -436,12 +412,12 @@ class next_state_generator
 //      return iterator(this, state, &m_substitution, summand_subset, enumeration_queue);
 //    }
 
-//    /// \brief Returns an iterator for generating the successors of the given state.
-//    /// Only the successors with respect to the summand with the given index are generated.
-//    iterator begin(const state& state, std::size_t summand_index, enumerator_queue* enumeration_queue)
-//    {
-//      return iterator(this, state, &m_substitution, summand_index, enumeration_queue);
-//    }
+    /// \brief Returns an iterator for generating the successors of the given state.
+    /// Only the successors with respect to the summand with the given index are generated.
+    iterator begin(const state& state, std::size_t summand_index, enumerator_queue* enumeration_queue)
+    {
+      return iterator(this, state, &m_substitution, summand_index, enumeration_queue);
+    }
 
     /// \brief Returns an iterator pointing to the end of a next state list.
     iterator end()
@@ -459,12 +435,6 @@ class next_state_generator
     data::rewriter& rewriter()
     {
       return m_rewriter;
-    }
-
-    /// \brief Returns a reference to the summand subset containing all summands.
-    summand_subset& all_summands()
-    {
-      return m_all_summands;
     }
 };
 
