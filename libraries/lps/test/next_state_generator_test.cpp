@@ -29,7 +29,6 @@ void test_initial_state_successors(const specification& lpsspec)
 {
   data::rewriter rewriter(lpsspec.data());
   next_state_generator generator(lpsspec, rewriter);
-
   next_state_generator::enumerator_queue enumeration_queue;
   for (auto it = generator.begin(generator.initial_state(), &enumeration_queue); it != generator.end(); it++)
   {
@@ -37,11 +36,9 @@ void test_initial_state_successors(const specification& lpsspec)
   }
 }
 
-void test_next_state_generator(const specification& lpsspec, std::size_t expected_states, std::size_t expected_transitions, std::size_t expected_transition_labels, bool enumeration_caching, bool per_summand)
+template <typename NextStateGenerator>
+void test_next_state_generator(NextStateGenerator& generator, const specification& lpsspec, std::size_t expected_states, std::size_t expected_transitions, std::size_t expected_transition_labels, bool per_summand)
 {
-  data::rewriter rewriter(lpsspec.data());
-  next_state_generator generator(lpsspec, rewriter, enumeration_caching);
-
   state initial_state = generator.initial_state();
 
   std::set<state> visited;
@@ -95,6 +92,22 @@ void test_next_state_generator(const specification& lpsspec, std::size_t expecte
   BOOST_CHECK(seen.size() == expected_states);
   BOOST_CHECK(transitions == expected_transitions);
   BOOST_CHECK(transition_labels.size() == expected_transition_labels);
+}
+
+void test_next_state_generator(const specification& lpsspec, std::size_t expected_states, std::size_t expected_transitions, std::size_t expected_transition_labels, bool enumeration_caching, bool per_summand)
+{
+  data::rewriter rewriter(lpsspec.data());
+
+  if (enumeration_caching)
+  {
+    cached_next_state_generator generator(lpsspec, rewriter);
+    test_next_state_generator(generator, lpsspec, expected_states, expected_transitions, expected_transition_labels, per_summand);
+  }
+  else
+  {
+    next_state_generator generator(lpsspec, rewriter);
+    test_next_state_generator(generator, lpsspec, expected_states, expected_transitions, expected_transition_labels, per_summand);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(single_state_test)
@@ -152,7 +165,6 @@ BOOST_AUTO_TEST_CASE(test_non_true_condition)
     // generator.
     BOOST_CHECK_THROW(test_next_state_generator(spec, 0, 0, 0, i&1, i&2), mcrl2::runtime_error);
   }
-
 }
 
 boost::unit_test::test_suite* init_unit_test_suite(int argc, char* argv[])

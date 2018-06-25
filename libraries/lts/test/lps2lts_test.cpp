@@ -30,8 +30,8 @@
 using namespace mcrl2;
 using namespace mcrl2::lts;
 
-template<class LTS_TYPE>
-LTS_TYPE translate_lps_to_lts(const lps::specification& specification,
+template<class LtsType>
+LtsType translate_lps_to_lts(const lps::specification& specification,
                               exploration_strategy strategy = es_breadth,
                               data::rewrite_strategy rewrite_strategy = data::jitty,
                               const std::string& priority_action = "")
@@ -47,14 +47,22 @@ LTS_TYPE translate_lps_to_lts(const lps::specification& specification,
 
   options.filename = utilities::temporary_filename("lps2lts_test_file");
 
-  LTS_TYPE result;
+  LtsType result;
   options.outformat = result.type();
-  lps2lts_algorithm lps2lts;
-  lps2lts.generate_lts(options);
+
+  if (options.use_enumeration_caching)
+  {
+    lps2lts_algorithm<lps::cached_next_state_generator> lps2lts;
+    lps2lts.generate_lts(options);
+  }
+  else
+  {
+    lps2lts_algorithm<lps::next_state_generator> lps2lts;
+    lps2lts.generate_lts(options);
+  }
 
   result.load(options.filename);
   std::remove(options.filename.c_str()); // Clean up after ourselves
-
   return result;
 }
 
@@ -421,8 +429,18 @@ BOOST_AUTO_TEST_CASE(test_max_states)
 
   lts_aut_t result;
   options.outformat = result.type();
-  lps2lts_algorithm lps2lts;
-  lps2lts.generate_lts(options);
+
+  if (options.use_enumeration_caching)
+  {
+    lps2lts_algorithm<lps::cached_next_state_generator> lps2lts;
+    lps2lts.generate_lts(options);
+  }
+  else
+  {
+    lps2lts_algorithm<lps::next_state_generator> lps2lts;
+    lps2lts.generate_lts(options);
+  }
+
   result.load(options.filename);
   remove(options.filename.c_str()); // Clean up after ourselves
 

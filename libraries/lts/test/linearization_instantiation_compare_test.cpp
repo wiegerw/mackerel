@@ -40,8 +40,18 @@ LTS_TYPE translate_lps_to_lts(const lps::specification& specification)
 
   LTS_TYPE result;
   options.outformat = result.type();
-  lps2lts_algorithm lps2lts;
-  lps2lts.generate_lts(options);
+
+  if (options.use_enumeration_caching)
+  {
+    lps2lts_algorithm<lps::cached_next_state_generator> lps2lts;
+    lps2lts.generate_lts(options);
+  }
+  else
+  {
+    lps2lts_algorithm<lps::next_state_generator> lps2lts;
+    lps2lts.generate_lts(options);
+  }
+
   result.load(options.filename);
   std::remove(options.filename.c_str()); // Clean up after ourselves
   return result;

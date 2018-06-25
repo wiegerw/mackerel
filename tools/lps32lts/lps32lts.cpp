@@ -27,6 +27,7 @@
 #include "mcrl2/lts/lts_io.h"
 #include "mcrl2/lts/detail/exploration.h"
 
+using namespace mcrl2;
 using namespace mcrl2::utilities::tools;
 using namespace mcrl2::utilities;
 using namespace mcrl2::core;
@@ -36,13 +37,46 @@ using namespace mcrl2::log;
 
 using mcrl2::data::tools::rewriter_tool;
 
-typedef  rewriter_tool< input_output_tool > lps2lts_base;
-class lps2lts_tool : public lps2lts_base
+struct abortable
+{
+  virtual void abort() = 0;
+};
+
+struct next_state_abortable: public abortable
+{
+  lps2lts_algorithm<lps::next_state_generator>* algorithm;
+
+  explicit next_state_abortable(lps2lts_algorithm<lps::next_state_generator>* algorithm_)
+    : algorithm(algorithm_)
+  {}
+
+  void abort() override
+  {
+    algorithm->abort();
+  }
+};
+
+struct cached_next_state_abortable: public abortable
+{
+  lps2lts_algorithm<lps::cached_next_state_generator>* algorithm;
+
+  explicit cached_next_state_abortable(lps2lts_algorithm<lps::cached_next_state_generator>* algorithm_)
+          : algorithm(algorithm_)
+  {}
+
+  void abort() override
+  {
+    algorithm->abort();
+  }
+};
+
+typedef rewriter_tool<input_output_tool> lps2lts_base;
+class lps2lts_tool: public lps2lts_base
 {
   protected:
-    mcrl2::lts::lps2lts_algorithm m_lps2lts;
     lts_generation_options m_options;
     std::string m_filename;
+    abortable* m_abortable;
 
   public:
     
@@ -81,7 +115,7 @@ class lps2lts_tool : public lps2lts_base
 
     void abort()
     {
-      m_lps2lts.abort();
+      m_abortable->abort();
     }
 
     bool run() override
@@ -90,7 +124,18 @@ class lps2lts_tool : public lps2lts_base
 
       try
       {
-        m_lps2lts.generate_lts(m_options);
+        if (m_options.use_enumeration_caching)
+        {
+          lps2lts_algorithm<lps::cached_next_state_generator> algorithm;
+          m_abortable = new cached_next_state_abortable(&algorithm);
+          algorithm.generate_lts(m_options);
+        }
+        else
+        {
+          lps2lts_algorithm<lps::next_state_generator> algorithm;
+          m_abortable = new next_state_abortable(&algorithm);
+          algorithm.generate_lts(m_options);
+        }
       }
       catch (mcrl2::runtime_error& e)
       {
@@ -225,10 +270,9 @@ class lps2lts_tool : public lps2lts_base
         }
       }
     }
-
 };
 
-lps2lts_tool *tool_instance;
+lps2lts_tool* tool_instance;
 
 static
 void premature_termination_handler(int)
