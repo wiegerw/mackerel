@@ -1,5 +1,5 @@
-project(lts32lps)
+project(lps32lts)
 
-add_executable(lts32lps lts32lps.cpp)
-target_link_libraries(lts32lps atermpp core data dparser lps process utilities)
-install(TARGETS lts32lps DESTINATION bin)
+add_executable(lps32lts lps32lts.cpp)
+target_link_libraries(lps32lts atermpp core data dparser lps process utilities)
+install(TARGETS lps32lts DESTINATION bin)
