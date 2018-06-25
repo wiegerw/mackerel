@@ -888,7 +888,8 @@ class pins
       state source(state_arguments.begin(),nparams);
 
       next_state_generator::enumerator_queue enumeration_queue;
-      for (auto i = m_generator.begin(source, &enumeration_queue); i; i++)
+      auto end = m_generator.end();
+      for (auto i = m_generator.begin(source, &enumeration_queue); i != end; ++i)
       {
         state destination = i->target_state;
         for (std::size_t j = 0; j < nparams; j++)
@@ -948,7 +949,8 @@ class pins
       state source(state_arguments.begin(),nparams);
 
       next_state_generator::enumerator_queue enumeration_queue;
-      for (auto i = (*generator).begin(source, group, &enumeration_queue); i; i++)
+      auto end = generator->end();
+      for (auto i = generator->begin(source, group, &enumeration_queue); i != end; ++i)
       {
         state destination = i->target_state;
         for (std::size_t j = 0; j < nparams; j++)

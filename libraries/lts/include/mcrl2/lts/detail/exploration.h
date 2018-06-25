@@ -334,10 +334,10 @@ class lps2lts_algorithm
       try
       {
         enumeration_queue.clear();
-        typename NextStateGenerator::iterator it(m_generator->begin(state, &enumeration_queue));
-        while (it)
+        auto end = m_generator->end();
+        for (auto i = m_generator->begin(state, &enumeration_queue); i != end; ++i)
         {
-          transitions.push_back(*it++);
+          transitions.push_back(*i);
         }
       }
       catch (mcrl2::runtime_error& e)

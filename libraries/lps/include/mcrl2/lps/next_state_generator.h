@@ -65,9 +65,9 @@ class next_state_generator
     };
 
   public:
-    class iterator: public boost::iterator_facade<iterator, const transition, boost::forward_traversal_tag>
+    struct next_state_iterator
     {
-      protected:
+      public:
         transition m_transition;
         next_state_generator* m_generator = nullptr;
         lps::state m_state;
@@ -95,17 +95,15 @@ class next_state_generator
           }
         }
 
+        next_state_iterator() = default;
 
-      public:
-        iterator() = default;
-
-        iterator(next_state_generator* generator,
-                 const lps::state& state,
-                 std::vector<next_state_summand>::iterator summands_first,
-                 std::vector<next_state_summand>::iterator summands_last,
-                 rewriter_substitution* substitution,
-                 enumerator_queue* enumeration_queue
-                )
+        next_state_iterator(next_state_generator* generator,
+                            const lps::state& state,
+                            std::vector<next_state_summand>::iterator summands_first,
+                            std::vector<next_state_summand>::iterator summands_last,
+                            rewriter_substitution* substitution,
+                            enumerator_queue* enumeration_queue
+        )
                 : m_generator(generator),
                   m_state(state),
                   m_substitution(substitution),
@@ -122,17 +120,9 @@ class next_state_generator
           increment();
         }
 
-        explicit operator bool() const
+        bool equal(const next_state_iterator& other) const
         {
-          return m_generator != nullptr;
-        }
-
-      private:
-        friend class boost::iterator_core_access;
-
-        bool equal(const iterator& other) const
-        {
-          return (!(bool)*this && !(bool)other) || (this == &other);
+          return (m_generator == nullptr && other.m_generator == nullptr) || this == &other;
         }
 
         const transition& dereference() const
@@ -180,23 +170,8 @@ class next_state_generator
             enumerate(m_summand->variables, m_summand->condition, *m_substitution);
           }
 
-          data::data_expression_list valuation;
           m_enumeration_iterator->add_assignments(m_summand->variables, *m_substitution, m_generator->m_rewriter);
           check_condition_rewrites_to_true();
-          if (m_enumeration_iterator->expression() != data::sort_bool::true_())
-          {
-            assert(m_enumeration_iterator->expression() != data::sort_bool::false_());
-
-            // Reduce condition as much as possible, and give a hint of the original condition in the error message.
-            data::data_expression reduced_condition(m_generator->m_rewriter(m_summand->condition, *m_substitution));
-            std::string printed_condition(data::pp(m_summand->condition).substr(0, 300));
-
-            throw mcrl2::runtime_error("Expression " + data::pp(reduced_condition) +
-                                       " does not rewrite to true or false in the condition "
-                                       + printed_condition
-                                       + (printed_condition.size() >= 300 ? "..." : ""));
-          }
-
           m_enumeration_iterator++;
 
           const data::data_expression_vector& state_args = m_summand->result_state;
@@ -220,8 +195,7 @@ class next_state_generator
           }
           else
           {
-            m_transition.action =
-              multi_action(process::action_list(actions.begin(), actions.end()), m_generator->m_rewriter(m_summand->time, *m_substitution));
+            m_transition.action = multi_action(process::action_list(actions.begin(), actions.end()), m_generator->m_rewriter(m_summand->time, *m_substitution));
           }
 
           m_transition.summand_index = m_summand - &m_generator->m_summands[0];
@@ -230,6 +204,43 @@ class next_state_generator
           {
             (*m_substitution)[variable] = variable;  // Reset the variable.
           }
+        }
+    };
+
+    class iterator: public boost::iterator_facade<iterator, const transition, boost::forward_traversal_tag>
+    {
+      protected:
+        next_state_iterator m_iterator;
+
+      public:
+        iterator() = default;
+
+        iterator(next_state_generator* generator,
+                 const lps::state& state,
+                 std::vector<next_state_summand>::iterator summands_first,
+                 std::vector<next_state_summand>::iterator summands_last,
+                 rewriter_substitution* substitution,
+                 enumerator_queue* enumeration_queue
+                )
+                : m_iterator(generator, state, summands_first, summands_last, substitution, enumeration_queue)
+        {}
+
+      private:
+        friend class boost::iterator_core_access;
+
+        bool equal(const iterator& other) const
+        {
+          return m_iterator.equal(other.m_iterator);
+        }
+
+        const transition& dereference() const
+        {
+          return m_iterator.m_transition;
+        }
+
+        void increment()
+        {
+          m_iterator.increment();
         }
     };
 
@@ -311,7 +322,6 @@ class next_state_generator
     /// \brief Returns an iterator for generating the successors of the given state.
     iterator begin(const state& state, enumerator_queue* enumeration_queue)
     {
-      // return iterator(this, state, &m_substitution, enumeration_queue);
       return iterator(this, state, m_summands.begin(), m_summands.end(), &m_substitution, enumeration_queue);
     }
 
@@ -319,7 +329,6 @@ class next_state_generator
     /// Only the successors with respect to the summand with the given index are generated.
     iterator begin(const state& state, std::size_t summand_index, enumerator_queue* enumeration_queue)
     {
-      // return iterator(this, state, &m_substitution, summand_index, enumeration_queue);
       return iterator(this, state, m_summands.begin() + summand_index, m_summands.begin() + summand_index + 1, &m_substitution, enumeration_queue);
     }
 
@@ -345,6 +354,7 @@ class next_state_generator
 class cached_next_state_generator: public next_state_generator
 {
   public:
+    // TODO: reuse parts of next_state_generator::iterator
     class iterator: public boost::iterator_facade<iterator, const transition, boost::forward_traversal_tag>
     {
       protected:
@@ -515,24 +525,9 @@ class cached_next_state_generator: public next_state_generator
           else
           {
             m_enumeration_iterator->add_assignments(m_summand->variables, *m_substitution, m_generator->m_rewriter);
-
             check_condition_rewrites_to_true();
-
-            if (m_enumeration_iterator->expression() != data::sort_bool::true_())
-            {
-              assert(m_enumeration_iterator->expression() != data::sort_bool::false_());
-
-              // Reduce condition as much as possible, and give a hint of the original condition in the error message.
-              data::data_expression reduced_condition(m_generator->m_rewriter(m_summand->condition, *m_substitution));
-              std::string printed_condition(data::pp(m_summand->condition).substr(0, 300));
-
-              throw mcrl2::runtime_error("Expression " + data::pp(reduced_condition) +
-                                         " does not rewrite to true or false in the condition "
-                                         + printed_condition
-                                         + (printed_condition.size() >= 300 ? "..." : ""));
-            }
-
             m_enumeration_iterator++;
+
             if (m_caching)
             {
               valuation = data::data_expression_list(m_summand->variables.begin(), m_summand->variables.end(), *m_substitution);
@@ -566,8 +561,7 @@ class cached_next_state_generator: public next_state_generator
           }
           else
           {
-            m_transition.action =
-                    multi_action(process::action_list(actions.begin(), actions.end()), m_generator->m_rewriter(m_summand->time, *m_substitution));
+            m_transition.action = multi_action(process::action_list(actions.begin(), actions.end()), m_generator->m_rewriter(m_summand->time, *m_substitution));
           }
 
           m_transition.summand_index = m_summand - &m_generator->m_summands[0];
