@@ -61,6 +61,7 @@ class next_state_generator
       std::vector<next_state_action_label> action_label;
       data::data_expression time;
 
+      // TODO: this is only used by cached_next_state_generator
       std::vector<std::size_t> condition_parameters;
       atermpp::function_symbol condition_arguments_function;
       std::map<enumeration_cache_key, enumeration_cache_value> enumeration_cache;
@@ -153,7 +154,37 @@ class next_state_generator
           }
         }
 
-        virtual void increment()
+        // assigns a new value to m_transition
+        void make_transition()
+        {
+          const data::data_expression_vector& state_args = m_summand->result_state;
+          m_transition.target_state = lps::state(state_args.begin(), state_args.size(), [&](const data::data_expression& x) { return m_generator->m_rewriter(x, *m_substitution); });
+
+          std::vector<process::action> actions;
+          actions.resize(m_summand->action_label.size());
+          std::vector<data::data_expression> arguments;
+          for (std::size_t i = 0; i < m_summand->action_label.size(); i++)
+          {
+            arguments.resize(m_summand->action_label[i].arguments.size());
+            for (std::size_t j = 0; j < m_summand->action_label[i].arguments.size(); j++)
+            {
+              arguments[j] = m_generator->m_rewriter(m_summand->action_label[i].arguments[j], *m_substitution);
+            }
+            actions[i] = process::action(m_summand->action_label[i].label, data::data_expression_list(arguments.begin(), arguments.end()));
+          }
+          if (m_summand->time == data::data_expression())  // Check whether the time is valid.
+          {
+            m_transition.action = multi_action(process::action_list(actions.begin(), actions.end()));
+          }
+          else
+          {
+            m_transition.action = multi_action(process::action_list(actions.begin(), actions.end()), m_generator->m_rewriter(m_summand->time, *m_substitution));
+          }
+
+          m_transition.summand_index = m_summand - &m_generator->m_summands[0];
+        }
+
+        void increment()
         {
           while (!m_summand || m_enumeration_iterator == m_generator->m_enumerator.end())
           {
@@ -180,31 +211,7 @@ class next_state_generator
           check_condition_rewrites_to_true();
           m_enumeration_iterator++;
 
-          const data::data_expression_vector& state_args = m_summand->result_state;
-          m_transition.target_state = lps::state(state_args.begin(), state_args.size(), [&](const data::data_expression& x) { return m_generator->m_rewriter(x, *m_substitution); });
-
-          std::vector<process::action> actions;
-          actions.resize(m_summand->action_label.size());
-          std::vector<data::data_expression> arguments;
-          for (std::size_t i = 0; i < m_summand->action_label.size(); i++)
-          {
-            arguments.resize(m_summand->action_label[i].arguments.size());
-            for (std::size_t j = 0; j < m_summand->action_label[i].arguments.size(); j++)
-            {
-              arguments[j] = m_generator->m_rewriter(m_summand->action_label[i].arguments[j], *m_substitution);
-            }
-            actions[i] = process::action(m_summand->action_label[i].label, data::data_expression_list(arguments.begin(), arguments.end()));
-          }
-          if (m_summand->time == data::data_expression())  // Check whether the time is valid.
-          {
-            m_transition.action = multi_action(process::action_list(actions.begin(), actions.end()));
-          }
-          else
-          {
-            m_transition.action = multi_action(process::action_list(actions.begin(), actions.end()), m_generator->m_rewriter(m_summand->time, *m_substitution));
-          }
-
-          m_transition.summand_index = m_summand - &m_generator->m_summands[0];
+          make_transition();
 
           for (const auto& variable: m_summand->variables)
           {
@@ -360,25 +367,18 @@ class next_state_generator
 class cached_next_state_generator: public next_state_generator
 {
   public:
-    struct cached_next_state_summand: public next_state_generator::next_state_summand
-    {
-      std::vector<std::size_t> condition_parameters;
-      atermpp::function_symbol condition_arguments_function;
-      std::map<enumeration_cache_key, enumeration_cache_value> enumeration_cache;
-    };
-
     struct cached_next_state_iterator: public next_state_generator::next_state_iterator
     {
       public:
         typedef next_state_generator::next_state_iterator super;
-        using super::m_enumeration_iterator;
-        using super::m_generator;
-        using super::m_state;
-        using super::m_transition;
-        using super::m_summands_first;
-        using super::m_summands_last;
-        using super::m_summand;
-        using super::check_condition_rewrites_to_true;
+//        using super::m_enumeration_iterator;
+//        using super::m_generator;
+//        using super::m_state;
+//        using super::m_transition;
+//        using super::m_summands_first;
+//        using super::m_summands_last;
+//        using super::m_summand;
+//        using super::check_condition_rewrites_to_true;
 
         bool m_cached = false;
         enumeration_cache_value::iterator m_enumeration_cache_iterator;
@@ -403,6 +403,7 @@ class cached_next_state_generator: public next_state_generator
 
         void increment()
         {
+          // TODO: simplify this logic
           while (!m_summand ||
                  (m_cached && m_enumeration_cache_iterator == m_enumeration_cache_end) ||
                  (!m_cached && m_enumeration_iterator == m_generator->m_enumerator.end())
@@ -487,31 +488,7 @@ class cached_next_state_generator: public next_state_generator
             m_enumeration_log.push_back(valuation);
           }
 
-          const data::data_expression_vector& state_args = m_summand->result_state;
-          m_transition.target_state = lps::state(state_args.begin(), state_args.size(), [&](const data::data_expression& x) { return m_generator->m_rewriter(x, *m_substitution); });
-
-          std::vector<process::action> actions;
-          actions.resize(m_summand->action_label.size());
-          std::vector<data::data_expression> arguments;
-          for (std::size_t i = 0; i < m_summand->action_label.size(); i++)
-          {
-            arguments.resize(m_summand->action_label[i].arguments.size());
-            for (std::size_t j = 0; j < m_summand->action_label[i].arguments.size(); j++)
-            {
-              arguments[j] = m_generator->m_rewriter(m_summand->action_label[i].arguments[j], *m_substitution);
-            }
-            actions[i] = process::action(m_summand->action_label[i].label, data::data_expression_list(arguments.begin(), arguments.end()));
-          }
-          if (m_summand->time == data::data_expression())  // Check whether the time is valid.
-          {
-            m_transition.action = multi_action(process::action_list(actions.begin(), actions.end()));
-          }
-          else
-          {
-            m_transition.action = multi_action(process::action_list(actions.begin(), actions.end()), m_generator->m_rewriter(m_summand->time, *m_substitution));
-          }
-
-          m_transition.summand_index = m_summand - &m_generator->m_summands[0];
+          make_transition();
 
           for (const auto& variable: m_summand->variables)
           {
