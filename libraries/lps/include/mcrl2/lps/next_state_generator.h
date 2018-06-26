@@ -29,6 +29,8 @@ namespace lps {
 
 class next_state_generator
 {
+    friend class cached_next_state_generator;
+
   public:
     typedef atermpp::term_appl<data::data_expression> enumeration_cache_key;
     typedef std::list<data::data_expression_list> enumeration_cache_value;
@@ -71,14 +73,14 @@ class next_state_generator
         transition m_transition;
         next_state_generator* m_generator = nullptr;
         lps::state m_state;
-        rewriter_substitution* m_substitution;
+        rewriter_substitution* m_substitution = nullptr;
 
-        std::vector<next_state_summand>::iterator m_summands_first;
-        std::vector<next_state_summand>::iterator m_summands_last;
-        next_state_summand* m_summand;
+        typename std::vector<next_state_summand>::iterator m_summands_first;
+        typename std::vector<next_state_summand>::iterator m_summands_last;
+        next_state_summand* m_summand = nullptr;
 
         enumerator::iterator m_enumeration_iterator;
-        enumerator_queue* m_enumeration_queue;
+        enumerator_queue* m_enumeration_queue = nullptr;
 
         /// \brief Enumerate <variables, phi> with substitution sigma.
         void enumerate(const data::variable_list& variables, const data::data_expression& phi, data::mutable_indexed_substitution<>& sigma)
@@ -99,25 +101,29 @@ class next_state_generator
 
         next_state_iterator(next_state_generator* generator,
                             const lps::state& state,
-                            std::vector<next_state_summand>::iterator summands_first,
-                            std::vector<next_state_summand>::iterator summands_last,
+                            typename std::vector<next_state_summand>::iterator summands_first,
+                            typename std::vector<next_state_summand>::iterator summands_last,
                             rewriter_substitution* substitution,
-                            enumerator_queue* enumeration_queue
+                            enumerator_queue* enumeration_queue,
+                            bool increment_ = true
         )
-                : m_generator(generator),
-                  m_state(state),
-                  m_substitution(substitution),
-                  m_summands_first(summands_first),
-                  m_summands_last(summands_last),
-                  m_summand(nullptr),
-                  m_enumeration_queue(enumeration_queue)
+          : m_generator(generator),
+            m_state(state),
+            m_substitution(substitution),
+            m_summands_first(summands_first),
+            m_summands_last(summands_last),
+            m_summand(nullptr),
+            m_enumeration_queue(enumeration_queue)
         {
           std::size_t j = 0;
-          for (auto i = state.begin(); i != state.end(); ++i, ++j)
+          for (auto i = m_state.begin(); i != state.end(); ++i, ++j)
           {
             (*m_substitution)[generator->m_process_parameters[j]] = *i;
           }
-          increment();
+          if (increment_)
+          {
+            increment();
+          }
         }
 
         bool equal(const next_state_iterator& other) const
@@ -147,7 +153,7 @@ class next_state_generator
           }
         }
 
-        void increment()
+        virtual void increment()
         {
           while (!m_summand || m_enumeration_iterator == m_generator->m_enumerator.end())
           {
@@ -354,104 +360,45 @@ class next_state_generator
 class cached_next_state_generator: public next_state_generator
 {
   public:
-    // TODO: reuse parts of next_state_generator::iterator
-    class iterator: public boost::iterator_facade<iterator, const transition, boost::forward_traversal_tag>
+    struct cached_next_state_summand: public next_state_generator::next_state_summand
     {
-      protected:
-        transition m_transition;
-        cached_next_state_generator* m_generator = nullptr;
-        lps::state m_state;
-        rewriter_substitution* m_substitution;
+      std::vector<std::size_t> condition_parameters;
+      atermpp::function_symbol condition_arguments_function;
+      std::map<enumeration_cache_key, enumeration_cache_value> enumeration_cache;
+    };
 
-        std::vector<next_state_summand>::iterator m_summands_first;
-        std::vector<next_state_summand>::iterator m_summands_last;
-        next_state_summand* m_summand;
+    struct cached_next_state_iterator: public next_state_generator::next_state_iterator
+    {
+      public:
+        typedef next_state_generator::next_state_iterator super;
+        using super::m_enumeration_iterator;
+        using super::m_generator;
+        using super::m_state;
+        using super::m_transition;
+        using super::m_summands_first;
+        using super::m_summands_last;
+        using super::m_summand;
+        using super::check_condition_rewrites_to_true;
 
-        bool m_cached;
+        bool m_cached = false;
         enumeration_cache_value::iterator m_enumeration_cache_iterator;
         enumeration_cache_value::iterator m_enumeration_cache_end;
-        enumerator::iterator m_enumeration_iterator;
-        bool m_caching;
+        bool m_caching = false;
         enumeration_cache_key m_enumeration_cache_key;
         enumeration_cache_value m_enumeration_log;
-        enumerator_queue* m_enumeration_queue;
 
-        /// \brief Enumerate <variables, phi> with substitution sigma.
-        void enumerate(const data::variable_list& variables, const data::data_expression& phi, data::mutable_indexed_substitution<>& sigma)
-        {
-          m_enumeration_queue->clear();
-          m_enumeration_queue->push_back(data::enumerator_list_element_with_substitution<>(variables, phi));
-          try
-          {
-            m_enumeration_iterator = m_generator->m_enumerator.begin(sigma, *m_enumeration_queue);
-          }
-          catch (mcrl2::runtime_error &e)
-          {
-            throw mcrl2::runtime_error(std::string(e.what()) + "\nProblem occurred when enumerating variables " + data::pp(variables) + " in " + data::pp(phi));
-          }
-        }
+        cached_next_state_iterator() = default;
 
-
-      public:
-        iterator() = default;
-
-        iterator(cached_next_state_generator* generator,
-                 const lps::state& state,
-                 std::vector<next_state_summand>::iterator summands_first,
-                 std::vector<next_state_summand>::iterator summands_last,
-                 rewriter_substitution* substitution,
-                 enumerator_queue* enumeration_queue
+        cached_next_state_iterator(cached_next_state_generator* generator,
+          const lps::state& state,
+          typename std::vector<next_state_summand>::iterator summands_first,
+          typename std::vector<next_state_summand>::iterator summands_last,
+          rewriter_substitution* substitution,
+          enumerator_queue* enumeration_queue
         )
-                : m_generator(generator),
-                  m_state(state),
-                  m_substitution(substitution),
-                  m_summands_first(summands_first),
-                  m_summands_last(summands_last),
-                  m_summand(nullptr),
-                  m_caching(false),
-                  m_enumeration_queue(enumeration_queue)
+          : super(generator, state, summands_first, summands_last, substitution, enumeration_queue, false)
         {
-          std::size_t j = 0;
-          for (auto i = state.begin(); i != state.end(); ++i, ++j)
-          {
-            (*m_substitution)[generator->m_process_parameters[j]] = *i;
-          }
           increment();
-        }
-
-        explicit operator bool() const
-        {
-          return m_generator != nullptr;
-        }
-
-      private:
-        friend class boost::iterator_core_access;
-
-        bool equal(const iterator& other) const
-        {
-          return (!(bool)*this && !(bool)other) || (this == &other);
-        }
-
-        const transition& dereference() const
-        {
-          return m_transition;
-        }
-
-        void check_condition_rewrites_to_true() const
-        {
-          if (m_enumeration_iterator->expression() != data::sort_bool::true_())
-          {
-            assert(m_enumeration_iterator->expression() != data::sort_bool::false_());
-
-            // Reduce condition as much as possible, and give a hint of the original condition in the error message.
-            data::data_expression reduced_condition(m_generator->m_rewriter(m_summand->condition, *m_substitution));
-            std::string printed_condition(data::pp(m_summand->condition).substr(0, 300));
-
-            throw mcrl2::runtime_error("Expression " + data::pp(reduced_condition) +
-                                       " does not rewrite to true or false in the condition "
-                                       + printed_condition
-                                       + (printed_condition.size() >= 300 ? "..." : ""));
-          }
         }
 
         void increment()
@@ -573,21 +520,55 @@ class cached_next_state_generator: public next_state_generator
         }
     };
 
+    class iterator: public boost::iterator_facade<iterator, const transition, boost::forward_traversal_tag>
+    {
+      protected:
+        cached_next_state_iterator m_iterator;
+
+      public:
+        iterator() = default;
+
+        iterator(cached_next_state_generator* generator,
+                 const lps::state& state,
+                 std::vector<next_state_summand>::iterator summands_first,
+                 std::vector<next_state_summand>::iterator summands_last,
+                 rewriter_substitution* substitution,
+                 enumerator_queue* enumeration_queue
+        )
+          : m_iterator(generator, state, summands_first, summands_last, substitution, enumeration_queue)
+        {}
+
+      private:
+        friend class boost::iterator_core_access;
+
+        bool equal(const iterator& other) const
+        {
+          return m_iterator.equal(other.m_iterator);
+        }
+
+        const transition& dereference() const
+        {
+          return m_iterator.m_transition;
+        }
+
+        void increment()
+        {
+          m_iterator.increment();
+        }
+    };
+
   public:
     /// \brief Constructor
     /// \param spec The process specification
     /// \param rewriter The rewriter used
     /// \param use_enumeration_caching Cache intermediate enumeration results
-    cached_next_state_generator(const specification& spec,
-                         const data::rewriter& rewriter
-    )
+    cached_next_state_generator(const specification& spec, const data::rewriter& rewriter)
       : next_state_generator(spec, rewriter)
     {}
 
     /// \brief Returns an iterator for generating the successors of the given state.
     iterator begin(const state& state, enumerator_queue* enumeration_queue)
     {
-      // return iterator(this, state, &m_substitution, enumeration_queue);
       return iterator(this, state, m_summands.begin(), m_summands.end(), &m_substitution, enumeration_queue);
     }
 
@@ -595,7 +576,6 @@ class cached_next_state_generator: public next_state_generator
     /// Only the successors with respect to the summand with the given index are generated.
     iterator begin(const state& state, std::size_t summand_index, enumerator_queue* enumeration_queue)
     {
-      // return iterator(this, state, &m_substitution, summand_index, enumeration_queue);
       return iterator(this, state, m_summands.begin() + summand_index, m_summands.begin() + summand_index + 1, &m_substitution, enumeration_queue);
     }
 
