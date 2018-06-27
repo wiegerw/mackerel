@@ -65,6 +65,11 @@ class next_state_generator
       std::vector<std::size_t> condition_parameters;
       atermpp::function_symbol condition_arguments_function;
       std::map<enumeration_cache_key, enumeration_cache_value> enumeration_cache;
+
+      bool has_time() const
+      {
+        return time != data::data_expression();
+      }
     };
 
   public:
@@ -81,21 +86,6 @@ class next_state_generator
 
       enumerator::iterator m_enumeration_iterator;
       enumerator_queue* m_enumeration_queue = nullptr;
-
-      /// \brief Enumerate <variables, phi> with substitution sigma.
-      void enumerate(const data::variable_list& variables, const data::data_expression& phi, data::mutable_indexed_substitution<>& sigma)
-      {
-        m_enumeration_queue->clear();
-        m_enumeration_queue->push_back(data::enumerator_list_element_with_substitution<>(variables, phi));
-        try
-        {
-          m_enumeration_iterator = m_generator->m_enumerator.begin(sigma, *m_enumeration_queue);
-        }
-        catch (mcrl2::runtime_error &e)
-        {
-          throw mcrl2::runtime_error(std::string(e.what()) + "\nProblem occurred when enumerating variables " + data::pp(variables) + " in " + data::pp(phi));
-        }
-      }
 
       next_state_iterator() = default;
 
@@ -171,13 +161,13 @@ class next_state_generator
           }
           actions[i] = process::action(summand.action_label[i].label, data::data_expression_list(arguments.begin(), arguments.end()));
         }
-        if (summand.time == data::data_expression())  // Check whether the time is valid.
+        if (summand.has_time())
         {
-          m_transition.action = multi_action(process::action_list(actions.begin(), actions.end()));
+          m_transition.action = multi_action(process::action_list(actions.begin(), actions.end()), m_generator->m_rewriter(summand.time, *m_substitution));
         }
         else
         {
-          m_transition.action = multi_action(process::action_list(actions.begin(), actions.end()), m_generator->m_rewriter(summand.time, *m_substitution));
+          m_transition.action = multi_action(process::action_list(actions.begin(), actions.end()));
         }
 
         m_transition.summand_index = m_summand - &m_generator->m_summands[0];
@@ -198,12 +188,13 @@ class next_state_generator
             return;
           }
           m_summand = &(*m_summands_first++);
-
           for (const auto& variable: m_summand->variables)
           {
             (*m_substitution)[variable] = variable;  // Reset the variable.
           }
-          enumerate(m_summand->variables, m_summand->condition, *m_substitution);
+          m_enumeration_queue->clear();
+          m_enumeration_queue->push_back(data::enumerator_list_element_with_substitution<>(m_summand->variables, m_summand->condition));
+          m_enumeration_iterator = m_generator->m_enumerator.begin(*m_substitution, *m_enumeration_queue);
         }
 
         m_enumeration_iterator->add_assignments(m_summand->variables, *m_substitution, m_generator->m_rewriter);
@@ -444,7 +435,9 @@ class cached_next_state_generator: public next_state_generator
             {
               (*m_substitution)[variable] = variable;  // Reset the variable.
             }
-            enumerate(m_summand->variables, m_summand->condition, *m_substitution);
+            m_enumeration_queue->clear();
+            m_enumeration_queue->push_back(data::enumerator_list_element_with_substitution<>(m_summand->variables, m_summand->condition));
+            m_enumeration_iterator = m_generator->m_enumerator.begin(*m_substitution, *m_enumeration_queue);
           }
         }
 
