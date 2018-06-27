@@ -110,15 +110,29 @@ class next_state_generator
         {
           (*m_substitution)[generator->m_process_parameters[j]] = *i;
         }
-        if (increment_)
+        if (increment_ && m_summands_first != m_summands_last)
         {
+          m_generator->m_id_generator.clear();
+          m_summand = &(*m_summands_first);
+          for (const auto& variable: m_summand->variables)
+          {
+            (*m_substitution)[variable] = variable;  // Reset the variable.
+          }
+          m_enumeration_queue->clear();
+          m_enumeration_queue->push_back(data::enumerator_list_element_with_substitution<>(m_summand->variables, m_summand->condition));
+          m_enumeration_iterator = m_generator->m_enumerator.begin(*m_substitution, *m_enumeration_queue);
           increment();
         }
       }
 
+      bool is_at_end() const
+      {
+        return m_generator == nullptr;
+      }
+
       bool equal(const next_state_iterator& other) const
       {
-        return (m_generator == nullptr && other.m_generator == nullptr) || this == &other;
+        return (is_at_end() && other.is_at_end()) || this == &other;
       }
 
       const transition& dereference() const
@@ -173,21 +187,17 @@ class next_state_generator
         m_transition.summand_index = m_summand - &m_generator->m_summands[0];
       }
 
-      void increment()
+      bool find_next_solution()
       {
-        while (!m_summand || m_enumeration_iterator == m_generator->m_enumerator.end())
+        while (m_enumeration_iterator == m_generator->m_enumerator.end())
         {
-          // Here we have to get a new summand. Search through the summands until one is
-          // found of which the condition is not equal to false. As a new summand is started
-          // we can reset the identifier_generator as no local variables are in use.
           m_generator->m_id_generator.clear();
-
-          if (m_summands_first == m_summands_last)
+          if (++m_summands_first == m_summands_last)
           {
             m_generator = nullptr;
-            return;
+            return false;
           }
-          m_summand = &(*m_summands_first++);
+          m_summand = &(*m_summands_first);
           for (const auto& variable: m_summand->variables)
           {
             (*m_substitution)[variable] = variable;  // Reset the variable.
@@ -196,10 +206,19 @@ class next_state_generator
           m_enumeration_queue->push_back(data::enumerator_list_element_with_substitution<>(m_summand->variables, m_summand->condition));
           m_enumeration_iterator = m_generator->m_enumerator.begin(*m_substitution, *m_enumeration_queue);
         }
+        return true;
+      }
+
+      void increment()
+      {
+        if (!find_next_solution())
+        {
+          return;
+        }
 
         m_enumeration_iterator->add_assignments(m_summand->variables, *m_substitution, m_generator->m_rewriter);
         check_condition_rewrites_to_true(*m_summand);
-        m_enumeration_iterator++;
+        ++m_enumeration_iterator;
 
         make_transition(*m_summand);
 
