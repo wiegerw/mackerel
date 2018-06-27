@@ -1,0 +1,13 @@
+import testing ;
+
+project libraries/trace/test
+   : requirements            
+       <library>/aterm//aterm
+       <library>/core//core
+       <library>/data//data
+       <library>/lps//lps
+       <library>/lts//lts
+       <library>/utilities//utilities
+   ;
+
+test-suite trace : [ test_all r ] ;
