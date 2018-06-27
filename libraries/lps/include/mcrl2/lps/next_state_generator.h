@@ -125,7 +125,7 @@ class next_state_generator
 
       bool is_at_end() const
       {
-        return m_generator == nullptr;
+        return m_summands_first == m_summands_last;
       }
 
       bool equal(const next_state_iterator& other) const
@@ -192,7 +192,6 @@ class next_state_generator
           m_generator->m_id_generator.clear();
           if (++m_summands_first == m_summands_last)
           {
-            m_generator = nullptr;
             return false;
           }
           const auto& summand = *m_summands_first;
@@ -430,6 +429,12 @@ class cached_next_state_generator: public next_state_generator
         }
 
         m_transition.summand_index = m_summand - &m_generator->m_summands[0];
+      }
+
+      // TODO reuse the code from the super class
+      bool equal(const next_state_iterator& other) const
+      {
+        return (m_generator == nullptr && other.m_generator == nullptr) || this == &other;
       }
 
       void increment()
