@@ -82,7 +82,6 @@ class next_state_generator
 
       typename std::vector<next_state_summand>::iterator m_summands_first;
       typename std::vector<next_state_summand>::iterator m_summands_last;
-      next_state_summand* m_summand = nullptr;
 
       enumerator::iterator m_enumeration_iterator;
       enumerator_queue* m_enumeration_queue = nullptr;
@@ -102,7 +101,6 @@ class next_state_generator
                 m_substitution(substitution),
                 m_summands_first(summands_first),
                 m_summands_last(summands_last),
-                m_summand(nullptr),
                 m_enumeration_queue(enumeration_queue)
       {
         std::size_t j = 0;
@@ -113,13 +111,13 @@ class next_state_generator
         if (increment_ && m_summands_first != m_summands_last)
         {
           m_generator->m_id_generator.clear();
-          m_summand = &(*m_summands_first);
-          for (const auto& variable: m_summand->variables)
+          const auto& summand = *m_summands_first;
+          for (const auto& variable: summand.variables)
           {
             (*m_substitution)[variable] = variable;  // Reset the variable.
           }
           m_enumeration_queue->clear();
-          m_enumeration_queue->push_back(data::enumerator_list_element_with_substitution<>(m_summand->variables, m_summand->condition));
+          m_enumeration_queue->push_back(data::enumerator_list_element_with_substitution<>(summand.variables, summand.condition));
           m_enumeration_iterator = m_generator->m_enumerator.begin(*m_substitution, *m_enumeration_queue);
           increment();
         }
@@ -184,7 +182,7 @@ class next_state_generator
           m_transition.action = multi_action(process::action_list(actions.begin(), actions.end()));
         }
 
-        m_transition.summand_index = m_summand - &m_generator->m_summands[0];
+        m_transition.summand_index = m_summands_first - m_generator->m_summands.begin();
       }
 
       bool find_next_solution()
@@ -197,13 +195,13 @@ class next_state_generator
             m_generator = nullptr;
             return false;
           }
-          m_summand = &(*m_summands_first);
-          for (const auto& variable: m_summand->variables)
+          const auto& summand = *m_summands_first;
+          for (const auto& variable: summand.variables)
           {
             (*m_substitution)[variable] = variable;  // Reset the variable.
           }
           m_enumeration_queue->clear();
-          m_enumeration_queue->push_back(data::enumerator_list_element_with_substitution<>(m_summand->variables, m_summand->condition));
+          m_enumeration_queue->push_back(data::enumerator_list_element_with_substitution<>(summand.variables, summand.condition));
           m_enumeration_iterator = m_generator->m_enumerator.begin(*m_substitution, *m_enumeration_queue);
         }
         return true;
@@ -216,13 +214,14 @@ class next_state_generator
           return;
         }
 
-        m_enumeration_iterator->add_assignments(m_summand->variables, *m_substitution, m_generator->m_rewriter);
-        check_condition_rewrites_to_true(*m_summand);
+        const auto& summand = *m_summands_first;
+        m_enumeration_iterator->add_assignments(summand.variables, *m_substitution, m_generator->m_rewriter);
+        check_condition_rewrites_to_true(summand);
         ++m_enumeration_iterator;
 
-        make_transition(*m_summand);
+        make_transition(summand);
 
-        for (const auto& variable: m_summand->variables)
+        for (const auto& variable: summand.variables)
         {
           (*m_substitution)[variable] = variable;  // Reset the variable.
         }
@@ -380,6 +379,8 @@ class cached_next_state_generator: public next_state_generator
     {
       typedef next_state_generator::next_state_iterator super;
 
+      next_state_summand* m_summand = nullptr;
+
       bool m_cached = false;
       enumeration_cache_value::iterator m_enumeration_cache_iterator;
       enumeration_cache_value::iterator m_enumeration_cache_end;
@@ -399,6 +400,36 @@ class cached_next_state_generator: public next_state_generator
               : super(generator, state, summands_first, summands_last, substitution, enumeration_queue, false)
       {
         increment();
+      }
+
+      // TODO: reuse code of super class
+      void make_transition(const next_state_summand& summand)
+      {
+        const data::data_expression_vector& state_args = summand.result_state;
+        m_transition.target_state = lps::state(state_args.begin(), state_args.size(), [&](const data::data_expression& x) { return m_generator->m_rewriter(x, *m_substitution); });
+
+        std::vector<process::action> actions;
+        actions.resize(summand.action_label.size());
+        std::vector<data::data_expression> arguments;
+        for (std::size_t i = 0; i < summand.action_label.size(); i++)
+        {
+          arguments.resize(summand.action_label[i].arguments.size());
+          for (std::size_t j = 0; j < summand.action_label[i].arguments.size(); j++)
+          {
+            arguments[j] = m_generator->m_rewriter(summand.action_label[i].arguments[j], *m_substitution);
+          }
+          actions[i] = process::action(summand.action_label[i].label, data::data_expression_list(arguments.begin(), arguments.end()));
+        }
+        if (summand.has_time())
+        {
+          m_transition.action = multi_action(process::action_list(actions.begin(), actions.end()), m_generator->m_rewriter(summand.time, *m_substitution));
+        }
+        else
+        {
+          m_transition.action = multi_action(process::action_list(actions.begin(), actions.end()));
+        }
+
+        m_transition.summand_index = m_summand - &m_generator->m_summands[0];
       }
 
       void increment()
