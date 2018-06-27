@@ -110,15 +110,7 @@ class next_state_generator
         }
         if (increment_ && m_summands_first != m_summands_last)
         {
-          m_generator->m_id_generator.clear();
-          const auto& summand = *m_summands_first;
-          for (const auto& variable: summand.variables)
-          {
-            (*m_substitution)[variable] = variable;  // Reset the variable.
-          }
-          m_enumeration_queue->clear();
-          m_enumeration_queue->push_back(data::enumerator_list_element_with_substitution<>(summand.variables, summand.condition));
-          m_enumeration_iterator = m_generator->m_enumerator.begin(*m_substitution, *m_enumeration_queue);
+          start_summand();
           increment();
         }
       }
@@ -185,23 +177,28 @@ class next_state_generator
         m_transition.summand_index = m_summands_first - m_generator->m_summands.begin();
       }
 
+      void start_summand()
+      {
+        m_generator->m_id_generator.clear();
+        const auto& summand = *m_summands_first;
+        for (const auto& variable: summand.variables)
+        {
+          (*m_substitution)[variable] = variable;  // Reset the variable.
+        }
+        m_enumeration_queue->clear();
+        m_enumeration_queue->push_back(data::enumerator_list_element_with_substitution<>(summand.variables, summand.condition));
+        m_enumeration_iterator = m_generator->m_enumerator.begin(*m_substitution, *m_enumeration_queue);
+      }
+
       bool find_next_solution()
       {
         while (m_enumeration_iterator == m_generator->m_enumerator.end())
         {
-          m_generator->m_id_generator.clear();
           if (++m_summands_first == m_summands_last)
           {
             return false;
           }
-          const auto& summand = *m_summands_first;
-          for (const auto& variable: summand.variables)
-          {
-            (*m_substitution)[variable] = variable;  // Reset the variable.
-          }
-          m_enumeration_queue->clear();
-          m_enumeration_queue->push_back(data::enumerator_list_element_with_substitution<>(summand.variables, summand.condition));
-          m_enumeration_iterator = m_generator->m_enumerator.begin(*m_substitution, *m_enumeration_queue);
+          start_summand();
         }
         return true;
       }
