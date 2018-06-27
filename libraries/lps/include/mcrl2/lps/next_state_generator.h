@@ -70,154 +70,153 @@ class next_state_generator
   public:
     struct next_state_iterator
     {
-      public:
-        transition m_transition;
-        next_state_generator* m_generator = nullptr;
-        lps::state m_state;
-        rewriter_substitution* m_substitution = nullptr;
+      transition m_transition;
+      next_state_generator* m_generator = nullptr;
+      lps::state m_state;
+      rewriter_substitution* m_substitution = nullptr;
 
-        typename std::vector<next_state_summand>::iterator m_summands_first;
-        typename std::vector<next_state_summand>::iterator m_summands_last;
-        next_state_summand* m_summand = nullptr;
+      typename std::vector<next_state_summand>::iterator m_summands_first;
+      typename std::vector<next_state_summand>::iterator m_summands_last;
+      next_state_summand* m_summand = nullptr;
 
-        enumerator::iterator m_enumeration_iterator;
-        enumerator_queue* m_enumeration_queue = nullptr;
+      enumerator::iterator m_enumeration_iterator;
+      enumerator_queue* m_enumeration_queue = nullptr;
 
-        /// \brief Enumerate <variables, phi> with substitution sigma.
-        void enumerate(const data::variable_list& variables, const data::data_expression& phi, data::mutable_indexed_substitution<>& sigma)
+      /// \brief Enumerate <variables, phi> with substitution sigma.
+      void enumerate(const data::variable_list& variables, const data::data_expression& phi, data::mutable_indexed_substitution<>& sigma)
+      {
+        m_enumeration_queue->clear();
+        m_enumeration_queue->push_back(data::enumerator_list_element_with_substitution<>(variables, phi));
+        try
         {
-          m_enumeration_queue->clear();
-          m_enumeration_queue->push_back(data::enumerator_list_element_with_substitution<>(variables, phi));
-          try
+          m_enumeration_iterator = m_generator->m_enumerator.begin(sigma, *m_enumeration_queue);
+        }
+        catch (mcrl2::runtime_error &e)
+        {
+          throw mcrl2::runtime_error(std::string(e.what()) + "\nProblem occurred when enumerating variables " + data::pp(variables) + " in " + data::pp(phi));
+        }
+      }
+
+      next_state_iterator() = default;
+
+      next_state_iterator(next_state_generator* generator,
+                          const lps::state& state,
+                          typename std::vector<next_state_summand>::iterator summands_first,
+                          typename std::vector<next_state_summand>::iterator summands_last,
+                          rewriter_substitution* substitution,
+                          enumerator_queue* enumeration_queue,
+                          bool increment_ = true
+      )
+              : m_generator(generator),
+                m_state(state),
+                m_substitution(substitution),
+                m_summands_first(summands_first),
+                m_summands_last(summands_last),
+                m_summand(nullptr),
+                m_enumeration_queue(enumeration_queue)
+      {
+        std::size_t j = 0;
+        for (auto i = m_state.begin(); i != state.end(); ++i, ++j)
+        {
+          (*m_substitution)[generator->m_process_parameters[j]] = *i;
+        }
+        if (increment_)
+        {
+          increment();
+        }
+      }
+
+      bool equal(const next_state_iterator& other) const
+      {
+        return (m_generator == nullptr && other.m_generator == nullptr) || this == &other;
+      }
+
+      const transition& dereference() const
+      {
+        return m_transition;
+      }
+
+      void check_condition_rewrites_to_true(const next_state_summand& summand) const
+      {
+        if (m_enumeration_iterator->expression() != data::sort_bool::true_())
+        {
+          assert(m_enumeration_iterator->expression() != data::sort_bool::false_());
+
+          // Reduce condition as much as possible, and give a hint of the original condition in the error message.
+          data::data_expression reduced_condition(m_generator->m_rewriter(summand.condition, *m_substitution));
+          std::string printed_condition(data::pp(summand.condition).substr(0, 300));
+
+          throw mcrl2::runtime_error("Expression " + data::pp(reduced_condition) +
+                                     " does not rewrite to true or false in the condition "
+                                     + printed_condition
+                                     + (printed_condition.size() >= 300 ? "..." : ""));
+        }
+      }
+
+      // assigns a new value to m_transition
+      void make_transition(const next_state_summand& summand)
+      {
+        const data::data_expression_vector& state_args = summand.result_state;
+        m_transition.target_state = lps::state(state_args.begin(), state_args.size(), [&](const data::data_expression& x) { return m_generator->m_rewriter(x, *m_substitution); });
+
+        std::vector<process::action> actions;
+        actions.resize(summand.action_label.size());
+        std::vector<data::data_expression> arguments;
+        for (std::size_t i = 0; i < summand.action_label.size(); i++)
+        {
+          arguments.resize(summand.action_label[i].arguments.size());
+          for (std::size_t j = 0; j < summand.action_label[i].arguments.size(); j++)
           {
-            m_enumeration_iterator = m_generator->m_enumerator.begin(sigma, *m_enumeration_queue);
+            arguments[j] = m_generator->m_rewriter(summand.action_label[i].arguments[j], *m_substitution);
           }
-          catch (mcrl2::runtime_error &e)
-          {
-            throw mcrl2::runtime_error(std::string(e.what()) + "\nProblem occurred when enumerating variables " + data::pp(variables) + " in " + data::pp(phi));
-          }
+          actions[i] = process::action(summand.action_label[i].label, data::data_expression_list(arguments.begin(), arguments.end()));
+        }
+        if (summand.time == data::data_expression())  // Check whether the time is valid.
+        {
+          m_transition.action = multi_action(process::action_list(actions.begin(), actions.end()));
+        }
+        else
+        {
+          m_transition.action = multi_action(process::action_list(actions.begin(), actions.end()), m_generator->m_rewriter(summand.time, *m_substitution));
         }
 
-        next_state_iterator() = default;
+        m_transition.summand_index = m_summand - &m_generator->m_summands[0];
+      }
 
-        next_state_iterator(next_state_generator* generator,
-                            const lps::state& state,
-                            typename std::vector<next_state_summand>::iterator summands_first,
-                            typename std::vector<next_state_summand>::iterator summands_last,
-                            rewriter_substitution* substitution,
-                            enumerator_queue* enumeration_queue,
-                            bool increment_ = true
-        )
-          : m_generator(generator),
-            m_state(state),
-            m_substitution(substitution),
-            m_summands_first(summands_first),
-            m_summands_last(summands_last),
-            m_summand(nullptr),
-            m_enumeration_queue(enumeration_queue)
+      void increment()
+      {
+        while (!m_summand || m_enumeration_iterator == m_generator->m_enumerator.end())
         {
-          std::size_t j = 0;
-          for (auto i = m_state.begin(); i != state.end(); ++i, ++j)
+          // Here we have to get a new summand. Search through the summands until one is
+          // found of which the condition is not equal to false. As a new summand is started
+          // we can reset the identifier_generator as no local variables are in use.
+          m_generator->m_id_generator.clear();
+
+          if (m_summands_first == m_summands_last)
           {
-            (*m_substitution)[generator->m_process_parameters[j]] = *i;
+            m_generator = nullptr;
+            return;
           }
-          if (increment_)
-          {
-            increment();
-          }
-        }
-
-        bool equal(const next_state_iterator& other) const
-        {
-          return (m_generator == nullptr && other.m_generator == nullptr) || this == &other;
-        }
-
-        const transition& dereference() const
-        {
-          return m_transition;
-        }
-
-        void check_condition_rewrites_to_true() const
-        {
-          if (m_enumeration_iterator->expression() != data::sort_bool::true_())
-          {
-            assert(m_enumeration_iterator->expression() != data::sort_bool::false_());
-
-            // Reduce condition as much as possible, and give a hint of the original condition in the error message.
-            data::data_expression reduced_condition(m_generator->m_rewriter(m_summand->condition, *m_substitution));
-            std::string printed_condition(data::pp(m_summand->condition).substr(0, 300));
-
-            throw mcrl2::runtime_error("Expression " + data::pp(reduced_condition) +
-                                       " does not rewrite to true or false in the condition "
-                                       + printed_condition
-                                       + (printed_condition.size() >= 300 ? "..." : ""));
-          }
-        }
-
-        // assigns a new value to m_transition
-        void make_transition()
-        {
-          const data::data_expression_vector& state_args = m_summand->result_state;
-          m_transition.target_state = lps::state(state_args.begin(), state_args.size(), [&](const data::data_expression& x) { return m_generator->m_rewriter(x, *m_substitution); });
-
-          std::vector<process::action> actions;
-          actions.resize(m_summand->action_label.size());
-          std::vector<data::data_expression> arguments;
-          for (std::size_t i = 0; i < m_summand->action_label.size(); i++)
-          {
-            arguments.resize(m_summand->action_label[i].arguments.size());
-            for (std::size_t j = 0; j < m_summand->action_label[i].arguments.size(); j++)
-            {
-              arguments[j] = m_generator->m_rewriter(m_summand->action_label[i].arguments[j], *m_substitution);
-            }
-            actions[i] = process::action(m_summand->action_label[i].label, data::data_expression_list(arguments.begin(), arguments.end()));
-          }
-          if (m_summand->time == data::data_expression())  // Check whether the time is valid.
-          {
-            m_transition.action = multi_action(process::action_list(actions.begin(), actions.end()));
-          }
-          else
-          {
-            m_transition.action = multi_action(process::action_list(actions.begin(), actions.end()), m_generator->m_rewriter(m_summand->time, *m_substitution));
-          }
-
-          m_transition.summand_index = m_summand - &m_generator->m_summands[0];
-        }
-
-        void increment()
-        {
-          while (!m_summand || m_enumeration_iterator == m_generator->m_enumerator.end())
-          {
-            // Here we have to get a new summand. Search through the summands until one is
-            // found of which the condition is not equal to false. As a new summand is started
-            // we can reset the identifier_generator as no local variables are in use.
-            m_generator->m_id_generator.clear();
-
-            if (m_summands_first == m_summands_last)
-            {
-              m_generator = nullptr;
-              return;
-            }
-            m_summand = &(*m_summands_first++);
-
-            for (const auto& variable: m_summand->variables)
-            {
-              (*m_substitution)[variable] = variable;  // Reset the variable.
-            }
-            enumerate(m_summand->variables, m_summand->condition, *m_substitution);
-          }
-
-          m_enumeration_iterator->add_assignments(m_summand->variables, *m_substitution, m_generator->m_rewriter);
-          check_condition_rewrites_to_true();
-          m_enumeration_iterator++;
-
-          make_transition();
+          m_summand = &(*m_summands_first++);
 
           for (const auto& variable: m_summand->variables)
           {
             (*m_substitution)[variable] = variable;  // Reset the variable.
           }
+          enumerate(m_summand->variables, m_summand->condition, *m_substitution);
         }
+
+        m_enumeration_iterator->add_assignments(m_summand->variables, *m_substitution, m_generator->m_rewriter);
+        check_condition_rewrites_to_true(*m_summand);
+        m_enumeration_iterator++;
+
+        make_transition(*m_summand);
+
+        for (const auto& variable: m_summand->variables)
+        {
+          (*m_substitution)[variable] = variable;  // Reset the variable.
+        }
+      }
     };
 
     class iterator: public boost::iterator_facade<iterator, const transition, boost::forward_traversal_tag>
@@ -369,132 +368,123 @@ class cached_next_state_generator: public next_state_generator
   public:
     struct cached_next_state_iterator: public next_state_generator::next_state_iterator
     {
-      public:
-        typedef next_state_generator::next_state_iterator super;
-//        using super::m_enumeration_iterator;
-//        using super::m_generator;
-//        using super::m_state;
-//        using super::m_transition;
-//        using super::m_summands_first;
-//        using super::m_summands_last;
-//        using super::m_summand;
-//        using super::check_condition_rewrites_to_true;
+      typedef next_state_generator::next_state_iterator super;
 
-        bool m_cached = false;
-        enumeration_cache_value::iterator m_enumeration_cache_iterator;
-        enumeration_cache_value::iterator m_enumeration_cache_end;
-        bool m_caching = false;
-        enumeration_cache_key m_enumeration_cache_key;
-        enumeration_cache_value m_enumeration_log;
+      bool m_cached = false;
+      enumeration_cache_value::iterator m_enumeration_cache_iterator;
+      enumeration_cache_value::iterator m_enumeration_cache_end;
+      bool m_caching = false;
+      enumeration_cache_key m_enumeration_cache_key;
+      enumeration_cache_value m_enumeration_log;
 
-        cached_next_state_iterator() = default;
+      cached_next_state_iterator() = default;
 
-        cached_next_state_iterator(cached_next_state_generator* generator,
-          const lps::state& state,
-          typename std::vector<next_state_summand>::iterator summands_first,
-          typename std::vector<next_state_summand>::iterator summands_last,
-          rewriter_substitution* substitution,
-          enumerator_queue* enumeration_queue
-        )
-          : super(generator, state, summands_first, summands_last, substitution, enumeration_queue, false)
+      cached_next_state_iterator(cached_next_state_generator* generator,
+                                 const lps::state& state,
+                                 typename std::vector<next_state_summand>::iterator summands_first,
+                                 typename std::vector<next_state_summand>::iterator summands_last,
+                                 rewriter_substitution* substitution,
+                                 enumerator_queue* enumeration_queue
+      )
+              : super(generator, state, summands_first, summands_last, substitution, enumeration_queue, false)
+      {
+        increment();
+      }
+
+      void increment()
+      {
+        // TODO: simplify this logic
+        while (!m_summand ||
+               (m_cached && m_enumeration_cache_iterator == m_enumeration_cache_end) ||
+               (!m_cached && m_enumeration_iterator == m_generator->m_enumerator.end())
+                )
         {
-          increment();
-        }
-
-        void increment()
-        {
-          // TODO: simplify this logic
-          while (!m_summand ||
-                 (m_cached && m_enumeration_cache_iterator == m_enumeration_cache_end) ||
-                 (!m_cached && m_enumeration_iterator == m_generator->m_enumerator.end())
-                  )
+          // Here we have to get a new summand. Search through the summands until one is
+          // found of which the condition is not equal to false. As a new summand is started
+          // we can reset the identifier_generator as no local variables are in use.
+          m_generator->m_id_generator.clear();
+          if (m_caching)
           {
-            // Here we have to get a new summand. Search through the summands until one is
-            // found of which the condition is not equal to false. As a new summand is started
-            // we can reset the identifier_generator as no local variables are in use.
-            m_generator->m_id_generator.clear();
-            if (m_caching)
-            {
-              m_summand->enumeration_cache[m_enumeration_cache_key] = m_enumeration_log;
-            }
-
-            if (m_summands_first == m_summands_last)
-            {
-              m_generator = nullptr;
-              return;
-            }
-            m_summand = &(*m_summands_first++);
-
-            m_enumeration_cache_key = enumeration_cache_key(m_summand->condition_arguments_function,
-                                                            m_summand->condition_parameters.begin(),
-                                                            m_summand->condition_parameters.end(),
-                                                            [&](const std::size_t n)
-                                                            {
-                                                                return m_state.element_at(n, m_generator->m_process_parameters.size());
-                                                            });
-
-            auto position = m_summand->enumeration_cache.find(m_enumeration_cache_key);
-            if (position == m_summand->enumeration_cache.end())
-            {
-              m_cached = false;
-              m_caching = true;
-              m_enumeration_log.clear();
-            }
-            else
-            {
-              m_cached = true;
-              m_caching = false;
-              m_enumeration_cache_iterator = position->second.begin();
-              m_enumeration_cache_end = position->second.end();
-            }
-
-            if (!m_cached)
-            {
-              for (const auto& variable: m_summand->variables)
-              {
-                (*m_substitution)[variable] = variable;  // Reset the variable.
-              }
-              enumerate(m_summand->variables, m_summand->condition, *m_substitution);
-            }
+            m_summand->enumeration_cache[m_enumeration_cache_key] = m_enumeration_log;
           }
 
-          data::data_expression_list valuation;
-          if (m_cached)
+          if (m_summands_first == m_summands_last)
           {
-            valuation = *m_enumeration_cache_iterator;
-            m_enumeration_cache_iterator++;
-            assert(valuation.size() == m_summand->variables.size());
-            auto v = valuation.begin();
-            for (auto i = m_summand->variables.begin(); i != m_summand->variables.end(); i++, v++)
-            {
-              (*m_substitution)[*i] = *v;
-            }
+            m_generator = nullptr;
+            return;
+          }
+          m_summand = &(*m_summands_first++);
+
+          m_enumeration_cache_key = enumeration_cache_key(m_summand->condition_arguments_function,
+                                                          m_summand->condition_parameters.begin(),
+                                                          m_summand->condition_parameters.end(),
+                                                          [&](const std::size_t n)
+                                                          {
+                                                              return m_state.element_at(n, m_generator->m_process_parameters.size());
+                                                          });
+
+          auto position = m_summand->enumeration_cache.find(m_enumeration_cache_key);
+          if (position == m_summand->enumeration_cache.end())
+          {
+            m_cached = false;
+            m_caching = true;
+            m_enumeration_log.clear();
           }
           else
           {
-            m_enumeration_iterator->add_assignments(m_summand->variables, *m_substitution, m_generator->m_rewriter);
-            check_condition_rewrites_to_true();
-            m_enumeration_iterator++;
-
-            if (m_caching)
-            {
-              valuation = data::data_expression_list(m_summand->variables.begin(), m_summand->variables.end(), *m_substitution);
-              assert(valuation.size() == m_summand->variables.size());
-            }
+            m_cached = true;
+            m_caching = false;
+            m_enumeration_cache_iterator = position->second.begin();
+            m_enumeration_cache_end = position->second.end();
           }
+
+          if (!m_cached)
+          {
+            for (const auto& variable: m_summand->variables)
+            {
+              (*m_substitution)[variable] = variable;  // Reset the variable.
+            }
+            enumerate(m_summand->variables, m_summand->condition, *m_substitution);
+          }
+        }
+
+        data::data_expression_list valuation;
+        if (m_cached)
+        {
+          valuation = *m_enumeration_cache_iterator;
+          m_enumeration_cache_iterator++;
+          assert(valuation.size() == m_summand->variables.size());
+          auto v = valuation.begin();
+          for (auto i = m_summand->variables.begin(); i != m_summand->variables.end(); i++, v++)
+          {
+            (*m_substitution)[*i] = *v;
+          }
+        }
+        else
+        {
+          m_enumeration_iterator->add_assignments(m_summand->variables, *m_substitution, m_generator->m_rewriter);
+          check_condition_rewrites_to_true(*m_summand);
+          m_enumeration_iterator++;
 
           if (m_caching)
           {
-            m_enumeration_log.push_back(valuation);
-          }
-
-          make_transition();
-
-          for (const auto& variable: m_summand->variables)
-          {
-            (*m_substitution)[variable] = variable;  // Reset the variable.
+            valuation = data::data_expression_list(m_summand->variables.begin(), m_summand->variables.end(), *m_substitution);
+            assert(valuation.size() == m_summand->variables.size());
           }
         }
+
+        if (m_caching)
+        {
+          m_enumeration_log.push_back(valuation);
+        }
+
+        make_transition(*m_summand);
+
+        for (const auto& variable: m_summand->variables)
+        {
+          (*m_substitution)[variable] = variable;  // Reset the variable.
+        }
+      }
     };
 
     class iterator: public boost::iterator_facade<iterator, const transition, boost::forward_traversal_tag>
