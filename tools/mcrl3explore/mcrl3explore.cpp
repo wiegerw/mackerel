@@ -10,7 +10,7 @@
 /// \file lps2lts_lts.cpp
 
 // NAME is defined in lps2lts.h
-#define AUTHOR "Muck van Weerdenburg"
+#define AUTHOR "Wieger Wesselink"
 
 #include <string>
 #include <cassert>
@@ -70,46 +70,46 @@ struct cached_next_state_abortable: public abortable
   }
 };
 
-typedef rewriter_tool<input_output_tool> lps2lts_base;
-class lps2lts_tool: public lps2lts_base
+class mcrl3explore_tool: public rewriter_tool<input_output_tool>
 {
   protected:
+    typedef rewriter_tool<input_output_tool> super;
+
     lts_generation_options m_options;
     std::string m_filename;
     abortable* m_abortable;
 
   public:
-    
-    lps2lts_tool() :
-      lps2lts_base("lps2lts",AUTHOR,
-                   "generate an LTS from an LPS",
-                   "Generate an LTS from the LPS in INFILE and save the result to OUTFILE. "
-                   "If INFILE is not supplied, stdin is used. "
-                   "If OUTFILE is not supplied, the LTS is not stored.\n"
-                   "\n"
-                   "If the 'jittyc' rewriter is used, then the MCRL2_COMPILEREWRITER environment "
-                   "variable (default value: 'mcrl2compilerewriter') determines the script that "
-                   "compiles the rewriter, and MCRL2_COMPILEDIR (default value: '.') determines "
-                   "where temporary files are stored.\n"
-                   "\n"
-                   "Note that lps2lts can deliver multiple transitions with the same label between"
-                   "any pair of states. If this is not desired, such transitions can be removed by"
-                   "applying a strong bisimulation reducton using for instance the tool ltsconvert.\n"
-                   "\n"
-                   "The format of OUTFILE is determined by its extension (unless it is specified "
-                   "by an option). The supported formats are:\n"
-                   "\n"
-                   +mcrl2::lts::detail::supported_lts_formats_text()+"\n"
-                   "If the jittyc rewriter is used, then the MCRL2_COMPILEREWRITER environment "
-                   "variable (default value: mcrl2compilerewriter) determines the script that "
-                   "compiles the rewriter, and MCRL2_COMPILEDIR (default value: '.') "
-                   "determines where temporary files are stored."
-                   "\n"
-                   "Note that lps2lts can deliver multiple transitions with the same "
-                   "label between any pair of states. If this is not desired, such "
-                   "transitions can be removed by applying a strong bisimulation reducton "
-                   "using for instance the tool ltsconvert."
-                  )
+    mcrl3explore_tool():
+      super("lps2lts", AUTHOR,
+            "generate an LTS from an LPS",
+            "Generate an LTS from the LPS in INFILE and save the result to OUTFILE. "
+            "If INFILE is not supplied, stdin is used. "
+            "If OUTFILE is not supplied, the LTS is not stored.\n"
+            "\n"
+            "If the 'jittyc' rewriter is used, then the MCRL2_COMPILEREWRITER environment "
+            "variable (default value: 'mcrl2compilerewriter') determines the script that "
+            "compiles the rewriter, and MCRL2_COMPILEDIR (default value: '.') determines "
+            "where temporary files are stored.\n"
+            "\n"
+            "Note that lps2lts can deliver multiple transitions with the same label between"
+            "any pair of states. If this is not desired, such transitions can be removed by"
+            "applying a strong bisimulation reducton using for instance the tool ltsconvert.\n"
+            "\n"
+            "The format of OUTFILE is determined by its extension (unless it is specified "
+            "by an option). The supported formats are:\n"
+            "\n"
+            +mcrl2::lts::detail::supported_lts_formats_text()+"\n"
+            "If the jittyc rewriter is used, then the MCRL2_COMPILEREWRITER environment "
+            "variable (default value: mcrl2compilerewriter) determines the script that "
+            "compiles the rewriter, and MCRL2_COMPILEDIR (default value: '.') "
+            "determines where temporary files are stored."
+            "\n"
+            "Note that lps2lts can deliver multiple transitions with the same "
+            "label between any pair of states. If this is not desired, such "
+            "transitions can be removed by applying a strong bisimulation reducton "
+            "using for instance the tool ltsconvert."
+           )
     {
     }
 
@@ -149,7 +149,7 @@ class lps2lts_tool: public lps2lts_base
   protected:
     void add_options(interface_description& desc) override
     {
-      lps2lts_base::add_options(desc);
+      super::add_options(desc);
 
       desc.
       add_option("cached",
@@ -187,7 +187,7 @@ class lps2lts_tool: public lps2lts_base
 
     void parse_options(const command_line_parser& parser) override
     {
-      lps2lts_base::parse_options(parser);
+      super::parse_options(parser);
       m_options.remove_unused_rewrite_rules    = parser.options.count("unused-data") == 0;
       m_options.detect_deadlock = parser.options.count("deadlock") != 0;
       m_options.detect_nondeterminism = parser.options.count("nondeterminism") != 0;
@@ -272,7 +272,7 @@ class lps2lts_tool: public lps2lts_base
     }
 };
 
-lps2lts_tool* tool_instance;
+mcrl3explore_tool* tool_instance;
 
 static
 void premature_termination_handler(int)
@@ -286,7 +286,7 @@ void premature_termination_handler(int)
 int main(int argc, char** argv)
 {
   int result;
-  tool_instance = new lps2lts_tool();
+  tool_instance = new mcrl3explore_tool();
 
   signal(SIGABRT, premature_termination_handler);
   signal(SIGINT, premature_termination_handler); // At ^C invoke the termination handler.

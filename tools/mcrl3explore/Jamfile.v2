@@ -1,4 +1,4 @@
-project lps3lts
+project mcrl3explore
    : requirements
        <library>/aterm//aterm
        <library>/core//core
@@ -10,9 +10,9 @@ project lps3lts
        <library>/dparser//dparser
    ;
 
-exe lps32lts
+exe mcrl3explore
   :
-    lps32lts.cpp
+    mcrl3explore.cpp
   ;
 
-install dist : lps32lts : <variant>debug:<location>../../../install_debug/bin <variant>release:<location>../../../install/bin ;
+install dist : mcrl3explore : <variant>debug:<location>../../../install_debug/bin <variant>release:<location>../../../install/bin ;
