@@ -180,19 +180,20 @@ class mcrl3explore_tool: public rewriter_tool<input_output_tool>
                  "such as the total number of states explored, just remain visible. ").
       add_option("init-tsize", make_mandatory_argument("NUM"),
                  "set the initial size of the internally used hash tables (default is 10000). ");
+      desc.add_option("no-tau", "do not add tau transitions to the state space", 't');
     }
 
     void parse_options(const command_line_parser& parser) override
     {
       super::parse_options(parser);
-      m_options.remove_unused_rewrite_rules    = parser.options.count("unused-data") == 0;
-      m_options.detect_deadlock = parser.options.count("deadlock") != 0;
-      m_options.detect_nondeterminism = parser.options.count("nondeterminism") != 0;
-      m_options.outinfo         = parser.options.count("no-info") == 0;
-      m_options.suppress_progress_messages = parser.options.count("suppress") !=0;
-      m_options.strat           = parser.option_argument_as< mcrl2::data::rewriter::strategy >("rewriter");
-
-      m_options.use_enumeration_caching = parser.options.count("cached") > 0;
+      m_options.remove_unused_rewrite_rules = parser.options.count("unused-data") == 0;
+      m_options.detect_deadlock             = parser.options.count("deadlock") != 0;
+      m_options.detect_nondeterminism       = parser.options.count("nondeterminism") != 0;
+      m_options.outinfo                     = parser.options.count("no-info") == 0;
+      m_options.suppress_progress_messages  = parser.options.count("suppress") != 0;
+      m_options.strat                       = parser.option_argument_as<mcrl2::data::rewriter::strategy>("rewriter");
+      m_options.use_enumeration_caching     = parser.options.count("cached") > 0;
+      m_options.no_tau                      = parser.options.count("no-tau") > 0;
 
       if (parser.options.count("dummy"))
       {
