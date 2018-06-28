@@ -12,20 +12,18 @@
 // NAME is defined in lps2lts.h
 #define AUTHOR "Wieger Wesselink"
 
-#include <string>
 #include <cassert>
 #include <csignal>
+#include <memory>
+#include <string>
 
-#include "mcrl2/utilities/logger.h"
-
-#include "mcrl2/utilities/input_output_tool.h"
 #include "mcrl2/data/rewriter_tool.h"
-
 #include "mcrl2/lps/io.h"
-#include "mcrl2/process/action_parse.h"
-
-#include "mcrl2/lts/lts_io.h"
 #include "mcrl2/lts/detail/exploration.h"
+#include "mcrl2/lts/lts_io.h"
+#include "mcrl2/process/action_parse.h"
+#include "mcrl2/utilities/input_output_tool.h"
+#include "mcrl2/utilities/logger.h"
 
 using namespace mcrl2;
 using namespace mcrl2::utilities::tools;
@@ -34,7 +32,6 @@ using namespace mcrl2::core;
 using namespace mcrl2::lts;
 using namespace mcrl2::lps;
 using namespace mcrl2::log;
-
 using mcrl2::data::tools::rewriter_tool;
 
 struct abortable
@@ -61,7 +58,7 @@ struct cached_next_state_abortable: public abortable
   lps2lts_algorithm<lps::cached_next_state_generator>* algorithm;
 
   explicit cached_next_state_abortable(lps2lts_algorithm<lps::cached_next_state_generator>* algorithm_)
-          : algorithm(algorithm_)
+    : algorithm(algorithm_)
   {}
 
   void abort() override
@@ -77,7 +74,7 @@ class mcrl3explore_tool: public rewriter_tool<input_output_tool>
 
     lts_generation_options m_options;
     std::string m_filename;
-    abortable* m_abortable;
+    abortable* m_abortable = nullptr;
 
   public:
     mcrl3explore_tool():
@@ -272,7 +269,7 @@ class mcrl3explore_tool: public rewriter_tool<input_output_tool>
     }
 };
 
-mcrl3explore_tool* tool_instance;
+std::unique_ptr<mcrl3explore_tool> tool_instance;
 
 static
 void premature_termination_handler(int)
@@ -285,21 +282,8 @@ void premature_termination_handler(int)
 
 int main(int argc, char** argv)
 {
-  int result;
-  tool_instance = new mcrl3explore_tool();
-
+  tool_instance = std::make_unique<mcrl3explore_tool>();
   signal(SIGABRT, premature_termination_handler);
   signal(SIGINT, premature_termination_handler); // At ^C invoke the termination handler.
-
-  try
-  {
-    result = tool_instance->execute(argc, argv);
-  }
-  catch (...)
-  {
-    delete tool_instance;
-    throw;
-  }
-  delete tool_instance;
-  return result;
+  return tool_instance->execute(argc, argv);
 }
