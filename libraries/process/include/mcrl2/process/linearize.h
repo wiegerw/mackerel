@@ -56,6 +56,21 @@ process_expression make_if_then(const data::data_expression& b, const process_ex
   return if_then(b, x);
 }
 
+inline
+process_expression make_sum(const data::variable_list& variables, const process_expression& x)
+{
+  if (is_choice(x))
+  {
+    std::vector<process_expression> summands = split_summands(x);
+    for (auto& summand: summands)
+    {
+      summand = sum(variables, summand);
+    }
+    return join_summands(summands.begin(), summands.end());
+  }
+  return sum(variables, x);
+}
+
 struct balance_process_parameters_builder: public process_expression_builder<balance_process_parameters_builder>
 {
   typedef process_expression_builder<balance_process_parameters_builder> super;
@@ -272,6 +287,19 @@ struct expand_if_then_else_builder: public process_expression_builder<expand_if_
   }
 };
 
+// sum v. (x + y) => (sum v. x) + (sum v. y)
+struct expand_sum_builder: public process_expression_builder<expand_sum_builder>
+{
+  typedef process_expression_builder<expand_sum_builder> super;
+  using super::apply;
+
+  process_expression apply(const process::sum& x)
+  {
+    process_expression operand = apply(x.operand());
+    return make_sum(x.variables(), operand);
+  }
+};
+
 inline
 process_expression make_guarded(const process_expression& x, const process_expression& dummy = tau())
 {
@@ -396,6 +424,13 @@ void expand_if_then_else(process_specification& procspec)
 }
 
 inline
+void expand_sum(process_specification& procspec)
+{
+  detail::expand_sum_builder f;
+  f.update(procspec);
+}
+
+inline
 void join_processes(process_specification& procspec)
 {
   detail::join_processes_builder f;
@@ -452,6 +487,12 @@ lps::specification linearize(process_specification procspec, bool expand_structu
   expand_if_then_else(procspec);
   timer.finish("expand if/then/else");
   log_process_specification(procspec, "expand_if_then_else");
+
+  mCRL2log(log::verbose) << "Expand sum" << std::endl;
+  timer.start("expand sum");
+  expand_sum(procspec);
+  timer.finish("expand sum");
+  log_process_specification(procspec, "expand_sum");
 
   mCRL2log(log::verbose) << "Convert process instances" << std::endl;
   timer.start("convert process instances");
