@@ -15,4 +15,4 @@ exe mcrl3explore
     mcrl3explore.cpp
   ;
 
-install dist : mcrl3explore : <variant>debug:<location>../../../install_debug/bin <variant>release:<location>../../../install/bin ;
+install dist : mcrl3explore : <variant>debug:<location>../../install_debug/bin <variant>release:<location>../../install/bin ;

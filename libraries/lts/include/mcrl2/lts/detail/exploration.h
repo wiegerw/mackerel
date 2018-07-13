@@ -315,12 +315,9 @@ class lps2lts_algorithm
 
     bool add_transition(const lps::state& source_state, const lps::next_state_generator::transition& transition)
     {
-
       std::size_t source_state_number = m_state_numbers[source_state];
       const std::pair<std::size_t, bool> target_state_number = add_target_state(source_state, transition.target_state);
-
       on_transition(source_state_number, transition.action, target_state_number.first);
-
       m_number_of_transitions++;
       return target_state_number.second;
     }
@@ -333,11 +330,36 @@ class lps2lts_algorithm
       assert(transitions.empty());
       try
       {
-        enumeration_queue.clear();
-        auto end = m_generator->end();
-        for (auto i = m_generator->begin(state, &enumeration_queue); i != end; ++i)
+        if (m_options.no_tau)
         {
-          transitions.push_back(*i);
+          std::deque<lps::state> todo{ state };
+          while (!todo.empty())
+          {
+            lps::state s = todo.front();
+            todo.pop_front();
+            enumeration_queue.clear();
+            auto end = m_generator->end();
+            for (auto i = m_generator->begin(s, &enumeration_queue); i != end; ++i)
+            {
+              if (i->action.actions().empty())
+              {
+                todo.push_back(i->target_state);
+              }
+              else
+              {
+                transitions.push_back(*i);
+              }
+            }
+          }
+        }
+        else
+        {
+          enumeration_queue.clear();
+          auto end = m_generator->end();
+          for (auto i = m_generator->begin(state, &enumeration_queue); i != end; ++i)
+          {
+            transitions.push_back(*i);
+          }
         }
       }
       catch (mcrl2::runtime_error& e)
@@ -378,6 +400,15 @@ class lps2lts_algorithm
       {
         lps::state state = m_state_numbers.get(current_state);
         generate_transitions(state, transitions, enumeration_queue);
+
+//        while (m_options.no_tau && transitions.size() == 1 && transitions.front().action.actions().empty())
+//        {
+//          // TODO: check if the conditions of the no_tau option are met
+//          auto target_state = transitions.front().target_state;
+//          transitions.clear();
+//          generate_transitions(target_state, transitions, enumeration_queue);
+//        }
+
         for (const lps::next_state_generator::transition& t: transitions)
         {
           add_transition(state, t);
