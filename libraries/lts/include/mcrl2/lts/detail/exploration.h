@@ -322,6 +322,41 @@ class lps2lts_algorithm
       return target_state_number.second;
     }
 
+#ifdef MCRL3_PRINT_STATE_CHANGES
+    void print_state_change(const lps::state& source, const lps::state& target)
+    {
+      static int count = 0;
+      if (count >= 1000)
+      {
+        return;
+      }
+      count++;
+
+      const auto& process_parameters = m_options.specification.process().process_parameters();
+      if (source == target)
+      {
+        std::cout << "no state change" << std::endl;
+        return;
+      }
+      auto i = source.begin();
+      auto j = target.begin();
+      auto k = process_parameters.begin();
+      for (; i != source.end(); ++i, ++j, ++k)
+      {
+        if (*i == *j)
+        {
+          continue;
+        }
+        if (i != source.begin())
+        {
+          std::cout << ", ";
+        }
+        std::cout << *k << "[" << *i << " -> " << *j << "]";
+      }
+      std::cout << std::endl;
+    }
+#endif
+
     void generate_transitions(const lps::state& state,
                               std::vector<lps::next_state_generator::transition>& transitions,
                               lps::next_state_generator::enumerator_queue& enumeration_queue
@@ -343,6 +378,9 @@ class lps2lts_algorithm
             {
               if (i->action.actions().empty())
               {
+#ifdef MCRL3_PRINT_STATE_CHANGES
+                print_state_change(state, i->target_state);
+#endif
                 todo.push_back(i->target_state);
               }
               else
