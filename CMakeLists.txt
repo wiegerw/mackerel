@@ -26,6 +26,7 @@ include_directories(libraries/data/include)
 include_directories(libraries/lps/include)
 include_directories(libraries/lts/include)
 include_directories(libraries/process/include)
+include_directories(libraries/trace/include)
 include_directories(libraries/utilities/include)
 include_directories( ${Boost_INCLUDE_DIRS} )
 
