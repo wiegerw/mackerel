@@ -9,9 +9,6 @@
 //
 /// \file lps2lts_lts.cpp
 
-// NAME is defined in lps2lts.h
-#define AUTHOR "Wieger Wesselink"
-
 #include <cassert>
 #include <csignal>
 #include <memory>
@@ -78,7 +75,7 @@ class mcrl3explore_tool: public rewriter_tool<input_output_tool>
 
   public:
     mcrl3explore_tool():
-      super("lps2lts", AUTHOR,
+      super("mcrl3explore", "Wieger Wesselink",
             "generate an LTS from an LPS",
             "Generate an LTS from the LPS in INFILE and save the result to OUTFILE. "
             "If INFILE is not supplied, stdin is used. "
@@ -89,7 +86,7 @@ class mcrl3explore_tool: public rewriter_tool<input_output_tool>
             "compiles the rewriter, and MCRL2_COMPILEDIR (default value: '.') determines "
             "where temporary files are stored.\n"
             "\n"
-            "Note that lps2lts can deliver multiple transitions with the same label between"
+            "Note that mcrl3explore can deliver multiple transitions with the same label between"
             "any pair of states. If this is not desired, such transitions can be removed by"
             "applying a strong bisimulation reducton using for instance the tool ltsconvert.\n"
             "\n"
@@ -102,7 +99,7 @@ class mcrl3explore_tool: public rewriter_tool<input_output_tool>
             "compiles the rewriter, and MCRL2_COMPILEDIR (default value: '.') "
             "determines where temporary files are stored."
             "\n"
-            "Note that lps2lts can deliver multiple transitions with the same "
+            "Note that mcrl3explore can deliver multiple transitions with the same "
             "label between any pair of states. If this is not desired, such "
             "transitions can be removed by applying a strong bisimulation reducton "
             "using for instance the tool ltsconvert."
@@ -168,7 +165,7 @@ class mcrl3explore_tool: public rewriter_tool<input_output_tool>
       add_option("out", make_mandatory_argument("FORMAT"),
                  "save the output in the specified FORMAT. ", 'o').
       add_option("no-info", "do not add state information to OUTFILE. "
-                 "Without this option lps2lts adds state vector to the LTS. This "
+                 "Without this option mcrl3explore adds state vector to the LTS. This "
                  "option causes this information to be discarded and states are only "
                  "indicated by a sequence number. Explicit state information is useful "
                  "for visualisation purposes, for instance, but can cause the OUTFILE "
