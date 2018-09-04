@@ -303,6 +303,35 @@ class data_specification: public sort_specification
       build_from_aterm(t);
     }
 
+    ///\brief Constructor.
+    data_specification(const basic_sort_list& sorts,
+            const alias_list& aliases,
+            const function_symbol_list& constructors,
+            const function_symbol_list& mappings,
+            const data_equation_list& equations)
+    {
+      for (const auto& x: sorts)
+      {
+        add_sort(x);
+      }
+      for (const auto& x: aliases)
+      {
+        add_alias(x);
+      }
+      for(const function_symbol& x: constructors)
+      {
+        add_constructor(x);
+      }
+      for(const function_symbol& x: mappings)
+      {
+        add_mapping(x);
+      }
+      for(const data_equation& x: equations)
+      {
+        add_equation(x);
+      }
+    }
+
     /// \brief Indicates that the data specification is type checked.
     /// \details This builds up internal data structures and allows
     ///  access to the data specification using all the utility functions.
