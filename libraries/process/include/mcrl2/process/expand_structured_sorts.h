@@ -217,6 +217,17 @@ void expand_structured_sorts(process_specification& procspec)
 
   detail::expand_structured_sorts_builder f(process_identifier_map, sigma);
   f.update(procspec);
+
+  // N.B. The data specification needs to be handled separately, because its irregular interface doesn't play
+  // well with the traverser framework.
+  const data::data_specification& dataspec = procspec.data();
+  data::basic_sort_list sorts(dataspec.user_defined_sorts().begin(), dataspec.user_defined_sorts().begin());
+  data::alias_list aliases(dataspec.user_defined_aliases().begin(), dataspec.user_defined_aliases().end());
+  data::function_symbol_list constructors(dataspec.user_defined_constructors().begin(), dataspec.user_defined_constructors().end());
+  data::function_symbol_list mappings(dataspec.user_defined_mappings().begin(), dataspec.user_defined_mappings().end());
+  data::data_equation_list equations(dataspec.user_defined_equations().begin(), dataspec.user_defined_equations().end());
+  equations = f.apply(equations);
+  procspec.data() = data::data_specification(sorts, aliases, constructors, mappings, equations);
 }
 
 } // namespace process
