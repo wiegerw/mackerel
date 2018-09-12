@@ -181,12 +181,14 @@ struct balance_process_parameters_builder: public process_expression_builder<bal
   }
 };
 
-// Applies the rule a.(x + y) -> a.Q, with Q = x + y a new equation.
+// Applies the rules
+//     a.(x + y)  -> a.Q, with Q = x + y a new equation.
+//     a.(b -> x) -> a.Q, with Q = b -> x a new equation.
 // Precondition: all process equations have the same process parameters.
 // Precondition: the list of equations is not empty.
-struct remove_action_choice_builder: public process_expression_builder<remove_action_choice_builder>
+struct remove_sequential_composition_builder: public process_expression_builder<remove_sequential_composition_builder>
 {
-  typedef process_expression_builder<remove_action_choice_builder> super;
+  typedef process_expression_builder<remove_sequential_composition_builder> super;
   using super::enter;
   using super::leave;
   using super::apply;
@@ -199,7 +201,7 @@ struct remove_action_choice_builder: public process_expression_builder<remove_ac
   {
     auto left = apply(x.left());
     auto right = apply(x.right());
-    if (is_action(left) && is_choice(right))
+    if (is_action(left) && (is_choice(right) || is_if_then(right)))
     {
       process_identifier Q(generator("Q"), process_parameters);
       additional_equations.emplace_back(Q, process_parameters, right);
@@ -496,9 +498,9 @@ void make_guarded(process_specification& procspec)
 }
 
 inline
-void remove_action_choice(process_specification& procspec)
+void remove_sequential_composition(process_specification& procspec)
 {
-  detail::remove_action_choice_builder f;
+  detail::remove_sequential_composition_builder f;
   f.update(procspec);
 }
 
@@ -560,10 +562,10 @@ lps::specification linearize(process_specification procspec, bool expand_structu
   balance_process_parameters(procspec);
   timer.finish("balance process parameters");
 
-  mCRL2log(log::verbose) << "Remove action choice" << std::endl;
-  timer.start("remove action choice");
-  remove_action_choice(procspec);
-  timer.finish("remove action choice");
+  mCRL2log(log::verbose) << "Remove sequential composition" << std::endl;
+  timer.start("remove sequential composition");
+  remove_sequential_composition(procspec);
+  timer.finish("remove sequential composition");
 
   mCRL2log(log::verbose) << "Make process guarded" << std::endl;
   timer.start("make process guarded");
