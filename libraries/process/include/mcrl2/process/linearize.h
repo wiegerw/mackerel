@@ -14,6 +14,7 @@
 
 #include "mcrl2/data/representative_generator.h"
 #include "mcrl2/data/rewriter.h"
+#include "mcrl2/data/set_identifier_generator.h"
 #include "mcrl2/lps/specification.h"
 #include "mcrl2/process/builder.h"
 #include "mcrl2/process/eliminate_single_usage_equations.h"
@@ -176,6 +177,54 @@ struct balance_process_parameters_builder: public process_expression_builder<bal
     for (process_equation& eqn: x.equations())
     {
       eqn = apply(eqn);
+    }
+  }
+};
+
+// Applies the rule a.(x + y) -> a.Q, with Q = x + y a new equation.
+// Precondition: all process equations have the same process parameters.
+// Precondition: the list of equations is not empty.
+struct remove_action_choice_builder: public process_expression_builder<remove_action_choice_builder>
+{
+  typedef process_expression_builder<remove_action_choice_builder> super;
+  using super::enter;
+  using super::leave;
+  using super::apply;
+
+  data::set_identifier_generator generator;
+  std::vector<process_equation> additional_equations;
+  data::variable_list process_parameters;
+
+  process_expression apply(const seq& x)
+  {
+    auto left = apply(x.left());
+    auto right = apply(x.right());
+    if (is_action(left) && is_choice(right))
+    {
+      process_identifier Q(generator("Q"), process_parameters);
+      additional_equations.emplace_back(Q, process_parameters, right);
+      return seq(left, process_instance_assignment(Q, {}));
+    }
+    return seq(left, right);
+  }
+
+  void update(process::process_specification& x)
+  {
+    for (const auto& eqn: x.equations())
+    {
+      generator.add_identifier(eqn.identifier().name());
+    }
+    process_parameters = x.equations().front().identifier().variables();
+
+    x.init() = apply(x.init());
+    for (process_equation& eqn: x.equations())
+    {
+      eqn = apply(eqn);
+    }
+
+    for (const auto& eqn: additional_equations)
+    {
+      x.equations().push_back(eqn);
     }
   }
 };
@@ -447,6 +496,13 @@ void make_guarded(process_specification& procspec)
 }
 
 inline
+void remove_action_choice(process_specification& procspec)
+{
+  detail::remove_action_choice_builder f;
+  f.update(procspec);
+}
+
+inline
 void log_process_specification(const process_specification& procspec, const std::string& msg)
 {
   mCRL2log(log::debug) << "\n--- " << msg << " ---\n" << remove_data_parameters_restricted(procspec) << std::endl;
@@ -503,6 +559,11 @@ lps::specification linearize(process_specification procspec, bool expand_structu
   timer.start("balance process parameters");
   balance_process_parameters(procspec);
   timer.finish("balance process parameters");
+
+  mCRL2log(log::verbose) << "Remove action choice" << std::endl;
+  timer.start("remove action choice");
+  remove_action_choice(procspec);
+  timer.finish("remove action choice");
 
   mCRL2log(log::verbose) << "Make process guarded" << std::endl;
   timer.start("make process guarded");
