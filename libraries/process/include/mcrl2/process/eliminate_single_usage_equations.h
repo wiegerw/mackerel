@@ -120,6 +120,7 @@ struct eliminate_single_usage_equations_algorithm
 {
   process_specification& procspec;
   data::rewriter R;
+  int max_usage;
 
   // Contains the number of times each process variable is used
   std::map<process_identifier, int> count;
@@ -135,9 +136,10 @@ struct eliminate_single_usage_equations_algorithm
   // Contains the order in which substitutions will be applied
   std::vector<process_identifier> substitution_order;
 
-  explicit eliminate_single_usage_equations_algorithm(process_specification& procspec_)
+  explicit eliminate_single_usage_equations_algorithm(process_specification& procspec_, int max_usage_ = 1)
     : procspec(procspec_),
-      R(procspec.data())
+      R(procspec.data()),
+      max_usage(max_usage_)
   {}
 
   std::vector<process_identifier> count_one_dependencies(const process_identifier& x)
@@ -182,7 +184,7 @@ struct eliminate_single_usage_equations_algorithm
     {
       const process_identifier& P = i.first;
       const std::set<process_identifier>& dependencies_P = i.second;
-      if (count[P] <= 1 && !contains(dependencies_P, P))
+      if (count[P] <= max_usage && !contains(dependencies_P, P))
       {
         to_be_eliminated.insert(P);
       }
@@ -291,10 +293,17 @@ struct eliminate_single_usage_equations_algorithm
   }
 };
 
-/// \brief Eliminates equations that are used only once, using substitution.
+/// \brief Eliminates equations that are used at most n times, using substitution.
 void eliminate_single_usage_equations(process_specification& procspec)
 {
   eliminate_single_usage_equations_algorithm algorithm(procspec);
+  algorithm.run();
+}
+
+/// \brief Eliminates equations that are used at most max_usage times, using substitution.
+void eliminate_multiple_usage_equations(process_specification& procspec, int max_usage = 1)
+{
+  eliminate_single_usage_equations_algorithm algorithm(procspec, max_usage);
   algorithm.run();
 }
 

@@ -512,7 +512,7 @@ void log_process_specification(const process_specification& procspec, const std:
 }
 
 inline
-lps::specification linearize(process_specification procspec, bool expand_structured_sorts = false)
+lps::specification linearize(process_specification procspec, bool expand_structured_sorts = false, int max_equation_usage = 1)
 {
   utilities::execution_timer timer;
 
@@ -534,11 +534,11 @@ lps::specification linearize(process_specification procspec, bool expand_structu
     log_process_specification(procspec, "expand_structured_sorts");
   }
 
-  mCRL2log(log::verbose) << "Eliminate single usage equations" << std::endl;
-  timer.start("eliminate single usage equations");
-  eliminate_single_usage_equations(procspec);
-  timer.finish("eliminate single usage equations");
-  log_process_specification(procspec, "eliminate_single_usage_equations");
+  mCRL2log(log::verbose) << "Eliminate equations" << std::endl;
+  timer.start("eliminate equations");
+  eliminate_multiple_usage_equations(procspec, max_equation_usage);
+  timer.finish("eliminate equations");
+  log_process_specification(procspec, "eliminate_equations");
 
   mCRL2log(log::verbose) << "Expand if/then/else" << std::endl;
   timer.start("expand if/then/else");
