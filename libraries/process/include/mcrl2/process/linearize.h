@@ -16,6 +16,7 @@
 #include "mcrl2/data/rewriter.h"
 #include "mcrl2/data/set_identifier_generator.h"
 #include "mcrl2/lps/specification.h"
+#include "mcrl2/lps/linearise.h"
 #include "mcrl2/process/builder.h"
 #include "mcrl2/process/eliminate_single_usage_equations.h"
 #include "mcrl2/process/expand_structured_sorts.h"
@@ -652,6 +653,45 @@ lps::specification linearize(process_specification procspec, bool expand_structu
   timer.report();
 
   return lpsspec;
+}
+
+inline
+lps::specification mcrl32lps(process_specification procspec, bool expand_structured_sorts = false, int max_equation_usage = 1)
+{
+  utilities::execution_timer timer;
+
+  log_process_specification(procspec, "mcrl32lps");
+
+  mCRL2log(log::verbose) << "Rewrite process specification" << std::endl;
+  data::rewriter R(procspec.data());
+  timer.start("rewriting");
+  process::rewrite(procspec, R);
+  timer.finish("rewriting");
+  log_process_specification(procspec, "rewrite");
+
+  if (expand_structured_sorts)
+  {
+    mCRL2log(log::verbose) << "Expand structured sorts" << std::endl;
+    timer.start("expand structured sorts");
+    process::expand_structured_sorts(procspec);
+    timer.finish("expand structured sorts");
+    log_process_specification(procspec, "expand_structured_sorts");
+  }
+
+  mCRL2log(log::verbose) << "Eliminate equations" << std::endl;
+  timer.start("eliminate equations");
+  eliminate_multiple_usage_equations(procspec, max_equation_usage);
+  timer.finish("eliminate equations");
+  log_process_specification(procspec, "eliminate_equations");
+
+  mCRL2log(log::verbose) << "Make process guarded" << std::endl;
+  timer.start("make process guarded");
+  make_guarded(procspec);
+  timer.finish("make process guarded");
+  log_process_specification(procspec, "make_guarded");
+
+  lps::t_lin_options options;
+  return lps::remove_stochastic_operators(lps::linearise(procspec, options));
 }
 
 } // namespace process

@@ -25,12 +25,14 @@ class mcrl3linearize_tool: public utilities::tools::input_output_tool
 
     bool expand_structured_sorts = false;
     int max_equation_usage = 0;
+    bool use_groote_implementation;
 
     void parse_options(const utilities::command_line_parser& parser) override
     {
       super::parse_options(parser);
       expand_structured_sorts = parser.options.count("expand-structured-sorts") > 0;
       max_equation_usage = parser.option_argument_as<int>("max-equation-usage");
+      use_groote_implementation = parser.options.count("use-groote-implementation") > 0;
     }
 
     void add_options(utilities::interface_description& desc) override
@@ -39,6 +41,7 @@ class mcrl3linearize_tool: public utilities::tools::input_output_tool
       desc.add_option("expand-structured-sorts", "expand structured sorts", 'e');
       desc.add_option("max-equation-usage", utilities::make_optional_argument("NAME", "1"),
                   "The maximum times an equation may be duplicated", 'm');
+      desc.add_option("use-groote-implementation", "Use the implementation of J.F.Groote", 'g');
     }
 
   public:
@@ -55,7 +58,15 @@ class mcrl3linearize_tool: public utilities::tools::input_output_tool
       timer().start("parse + type check process specification");
       process::process_specification procspec = process::detail::parse_process_specification(input_filename());
       timer().finish("parse + type check process specification");
-      lps::specification lpsspec = linearize(procspec, expand_structured_sorts, max_equation_usage);
+      lps::specification lpsspec;
+      if (use_groote_implementation)
+      {
+        lpsspec = process::mcrl32lps(procspec, expand_structured_sorts, max_equation_usage);
+      }
+      else
+      {
+        lpsspec = linearize(procspec, expand_structured_sorts, max_equation_usage);
+      }
       lps::detail::save_lps(lpsspec, output_filename());
       return true;
     }
