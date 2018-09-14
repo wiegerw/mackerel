@@ -12,6 +12,7 @@
 #ifndef MCRL2_PROCESS_EXPAND_STRUCTURED_SORTS_H
 #define MCRL2_PROCESS_EXPAND_STRUCTURED_SORTS_H
 
+#include "mcrl2/core/detail/print_utility.h"
 #include "mcrl2/data/substitutions/mutable_map_substitution.h"
 #include "mcrl2/process/builder.h"
 #include "mcrl2/process/process_specification.h"
@@ -31,18 +32,55 @@ struct expand_structured_sorts_builder: public data_expression_builder<expand_st
 
   const std::map<process_identifier, process_identifier>& process_identifier_map;
   const std::map<data::data_expression, data::data_expression>& sigma;
+  const data::variable& p; // the structured sort variable that is expanded
+  const data::variable_list& parameters; // the replacement for p
+  const data::sort_expression_list& parameter_sorts;
+
+  // replace f(x)(p) by f'(x)(parameters)
+  data::data_expression replace_function_call(const data::application& x) const
+  {
+    if (!data::is_application(x.head()))
+    {
+      throw mcrl2::runtime_error("HELP1");
+    }
+    const auto& f_x = atermpp::down_cast<data::application>(x.head());
+    const auto& f = f_x.head();
+    if (!data::is_function_symbol(f))
+    {
+      throw mcrl2::runtime_error("HELP2");
+    }
+    const auto& f_ = atermpp::down_cast<data::function_symbol>(f);
+    const auto& f_sort = atermpp::down_cast<data::function_sort>(f.sort());
+
+    data::function_sort f1_sort(parameter_sorts, f_sort.codomain());
+    data::function_symbol f1(f_.name(), f1_sort);
+    return data::application(f1, parameters);
+  }
 
   expand_structured_sorts_builder(const std::map<process_identifier, process_identifier>& process_identifier_map_,
-                                  const std::map<data::data_expression, data::data_expression>& sigma_)
-   : process_identifier_map(process_identifier_map_), sigma(sigma_)
+                                  const std::map<data::data_expression, data::data_expression>& sigma_,
+                                  const data::variable& p_,
+                                  const data::variable_list& parameters_,
+                                  const data::sort_expression_list& parameter_sorts_
+                                 )
+   : process_identifier_map(process_identifier_map_), sigma(sigma_), p(p_), parameters(parameters_), parameter_sorts(parameter_sorts_)
   {}
 
   data::data_expression apply(const data::application& x)
   {
-    auto x1 = super::apply(x); // innermost
+    data::data_expression x1 = super::apply(x); // innermost
     auto i = sigma.find(x1);
     if (i == sigma.end())
     {
+      // If we encounter a function application f(p), replace it by f
+      if (data::is_application(x1))
+      {
+        const auto& x1_ = atermpp::down_cast<data::application>(x1);
+        if (x1_.size() == 1 && x1_[0] == p)
+        {
+          x1 = replace_function_call(x1_);
+        }
+      }
       return x1;
     }
     return i->second;
@@ -181,12 +219,29 @@ std::map<data::data_expression, data::data_expression> make_structured_sort_subs
     data::function_symbol f(arg.name(), data::function_sort(data::sort_expression_list({ v.sort() }), arg.sort()));
     data::application lhs(f, v);
     data::variable rhs(arg.name(), arg.sort());
-    // TODO: find out why these sorts are not normalized yet
+    // TODO: these sorts should be normalized. This looks like a bug.
     lhs = data::normalize_sorts(lhs, procspec.data());
     rhs = data::normalize_sorts(rhs, procspec.data());
     sigma[lhs] = rhs;
   }
   return sigma;
+}
+
+inline
+std::pair<data::variable_list, data::sort_expression_list> structured_sort_variables(const process_specification& procspec, const data::variable& v, const data::structured_sort& sort)
+{
+  std::vector<data::variable> parameters;
+  std::vector<data::sort_expression> parameter_sorts;
+  for (const data::structured_sort_constructor_argument& arg: sort.constructors().front().arguments())
+  {
+    data::function_symbol f(arg.name(), data::function_sort(data::sort_expression_list({ v.sort() }), arg.sort()));
+    data::variable rhs(arg.name(), arg.sort());
+    // TODO: these sorts should be normalized. This looks like a bug.
+    rhs = data::normalize_sorts(rhs, procspec.data());
+    parameters.push_back(rhs);
+    parameter_sorts.push_back(rhs.sort());
+  }
+  return { data::variable_list(parameters.begin(), parameters.end()), data::sort_expression_list(parameter_sorts.begin(), parameter_sorts.end()) };
 }
 
 }; // namespace detail
@@ -215,7 +270,11 @@ void expand_structured_sorts(process_specification& procspec)
   auto p = *structured_sort_parameters.begin();
   std::map<data::data_expression, data::data_expression> sigma = detail::make_structured_sort_substitution(procspec, p.first, p.second);
 
-  detail::expand_structured_sorts_builder f(process_identifier_map, sigma);
+  data::variable_list parameters;
+  data::sort_expression_list parameter_sorts;
+  std::tie(parameters, parameter_sorts) = detail::structured_sort_variables(procspec, p.first, p.second);
+
+  detail::expand_structured_sorts_builder f(process_identifier_map, sigma, p.first, parameters, parameter_sorts);
   f.update(procspec);
 
   // N.B. The data specification needs to be handled separately, because its irregular interface doesn't play
