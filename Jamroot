@@ -46,6 +46,9 @@ project mcrl2
        <toolset>msvc:<cxxflags>/wd4244
        <toolset>msvc:<cxxflags>/wd4200
 
+       #--- Generic settings ---#
+       <define>MCRL2_NO_SOUNDNESS_CHECKS
+
        #--- boost libraries ---#
        <library>/boost/test//boost_unit_test_framework
    ;
