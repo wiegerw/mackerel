@@ -88,6 +88,7 @@ data::data_equation_list normalize_sorts(const data::data_equation_list& x, cons
 void normalize_sorts(data::data_equation_vector& x, const data::sort_specification& sortspec) { data::normalize_sorts< data::data_equation_vector >(x, sortspec); }
 data::data_expression normalize_sorts(const data::data_expression& x, const data::sort_specification& sortspec) { return data::normalize_sorts< data::data_expression >(x, sortspec); }
 data::sort_expression normalize_sorts(const data::sort_expression& x, const data::sort_specification& sortspec) { return data::normalize_sorts< data::sort_expression >(x, sortspec); }
+data::variable normalize_sorts(const data::variable& x, const data::sort_specification& sortspec) { return data::normalize_sorts< data::variable >(x, sortspec); }
 data::variable_list normalize_sorts(const data::variable_list& x, const data::sort_specification& sortspec) { return data::normalize_sorts< data::variable_list >(x, sortspec); }
 data::data_expression translate_user_notation(const data::data_expression& x) { return data::translate_user_notation< data::data_expression >(x); }
 data::data_equation translate_user_notation(const data::data_equation& x) { return data::translate_user_notation< data::data_equation >(x); }

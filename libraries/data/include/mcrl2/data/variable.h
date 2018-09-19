@@ -109,6 +109,7 @@ inline void swap(variable& t1, variable& t2)
 }
 //--- end generated class variable ---//
 
+class sort_specification;
 
 // template function overloads
 std::string pp(const variable_list& x);
@@ -118,6 +119,7 @@ std::string pp(const std::set<variable>& x);
 std::set<data::variable> find_all_variables(const data::variable& x);
 std::set<data::variable> find_all_variables(const data::variable_list& x);
 std::set<core::identifier_string> find_identifiers(const data::variable_list& x);
+data::variable normalize_sorts(const data::variable& x, const data::sort_specification& sortspec);
 
 } // namespace data
 
