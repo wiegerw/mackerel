@@ -62,6 +62,7 @@ data::data_equation_list
 data::data_equation_vector
 data::data_expression
 data::sort_expression
+data::variable
 data::variable_list
 lps::multi_action
 lps::specification
