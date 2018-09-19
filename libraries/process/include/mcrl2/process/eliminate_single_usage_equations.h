@@ -142,12 +142,12 @@ struct eliminate_single_usage_equations_algorithm
       max_usage(max_usage_)
   {}
 
-  std::vector<process_identifier> count_one_dependencies(const process_identifier& x)
+  std::vector<process_identifier> find_dependencies(const process_identifier& x)
   {
     std::vector<process_identifier> result;
     for (const process_identifier& y: dependencies[x])
     {
-      if (x != y && count[y] == 1)
+      if (x != y && count[y] <= max_usage)
       {
         result.push_back(y);
       }
@@ -271,7 +271,7 @@ struct eliminate_single_usage_equations_algorithm
     // apply substitutions to the equation in the order given by substitution_order
     for (const process_identifier& P: substitution_order)
     {
-      auto dep = count_one_dependencies(P);
+      auto dep = find_dependencies(P);
       if (dep.empty())
       {
         continue;

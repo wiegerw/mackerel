@@ -12,6 +12,7 @@
 #ifndef MCRL2_PROCESS_EXPAND_STRUCTURED_SORTS_H
 #define MCRL2_PROCESS_EXPAND_STRUCTURED_SORTS_H
 
+#include <algorithm>
 #include "mcrl2/core/detail/print_utility.h"
 #include "mcrl2/data/substitutions/mutable_map_substitution.h"
 #include "mcrl2/process/builder.h"
@@ -23,67 +24,89 @@ namespace process {
 
 namespace detail {
 
-struct expand_structured_sorts_builder: public data_expression_builder<expand_structured_sorts_builder>
+struct expand_structured_sorts_builder: public sort_expression_builder<expand_structured_sorts_builder>
 {
-  typedef data_expression_builder<expand_structured_sorts_builder> super;
+  typedef sort_expression_builder<expand_structured_sorts_builder> super;
   using super::enter;
   using super::leave;
   using super::apply;
 
   const std::map<process_identifier, process_identifier>& process_identifier_map;
   const std::map<data::data_expression, data::data_expression>& sigma;
-  const data::variable& p; // the structured sort variable that is expanded
-  const data::variable_list& parameters; // the replacement for p
+  const data::basic_sort& psort; // the sort of the structured sort variable p
+  const data::variable_list& parameters; // the replacement for the structured sort variable p
   const data::sort_expression_list& parameter_sorts;
-
-  // replace f(x)(p) by f'(x)(parameters)
-  data::data_expression replace_function_call(const data::application& x) const
-  {
-    if (!data::is_application(x.head()))
-    {
-      throw mcrl2::runtime_error("HELP1");
-    }
-    const auto& f_x = atermpp::down_cast<data::application>(x.head());
-    const auto& f = f_x.head();
-    if (!data::is_function_symbol(f))
-    {
-      throw mcrl2::runtime_error("HELP2");
-    }
-    const auto& f_ = atermpp::down_cast<data::function_symbol>(f);
-    const auto& f_sort = atermpp::down_cast<data::function_sort>(f.sort());
-
-    data::function_sort f1_sort(parameter_sorts, f_sort.codomain());
-    data::function_symbol f1(f_.name(), f1_sort);
-    return data::application(f1, parameters);
-  }
 
   expand_structured_sorts_builder(const std::map<process_identifier, process_identifier>& process_identifier_map_,
                                   const std::map<data::data_expression, data::data_expression>& sigma_,
-                                  const data::variable& p_,
+                                  const data::basic_sort& psort_,
                                   const data::variable_list& parameters_,
                                   const data::sort_expression_list& parameter_sorts_
                                  )
-   : process_identifier_map(process_identifier_map_), sigma(sigma_), p(p_), parameters(parameters_), parameter_sorts(parameter_sorts_)
+   : process_identifier_map(process_identifier_map_), sigma(sigma_), psort(psort_), parameters(parameters_), parameter_sorts(parameter_sorts_)
   {}
+
+  // replace p in the domain of each function sort
+  data::sort_expression apply(const data::function_sort& x)
+  {
+    if (x.target_sort() == psort)
+    {
+      std::cout << "x = " << x << std::endl;
+      throw mcrl2::runtime_error("expand_structured_sort: the expanded sort cannot be a target sort!");
+    }
+
+    std::vector<data::sort_expression> domain_sorts;
+    for (const auto& s: x.domain())
+    {
+      if (s == psort)
+      {
+        domain_sorts.insert(domain_sorts.end(), parameter_sorts.begin(), parameter_sorts.end());
+      }
+      else
+      {
+        domain_sorts.push_back(s);
+      }
+    }
+    return data::function_sort(data::sort_expression_list(domain_sorts.begin(), domain_sorts.end()), apply(x.target_sort()));
+  }
+
+  // replace p in the variables of abstractions
+  data::data_expression apply(const data::abstraction& x)
+  {
+    data::variable_list variables = x.variables();
+    if (variables.size() == 1 && variables.front().sort() == psort)
+    {
+      variables = parameters;
+    }
+    return data::abstraction(x.binding_operator(), variables, apply(x.body()));
+  }
+
+  data::data_expression apply(const data::function_symbol& x)
+  {
+    auto i = sigma.find(x);
+    if (i != sigma.end())
+    {
+      return i->second;
+    }
+    return data::function_symbol(x.name(), apply(x.sort()));
+  }
 
   data::data_expression apply(const data::application& x)
   {
-    data::data_expression x1 = super::apply(x); // innermost
-    auto i = sigma.find(x1);
-    if (i == sigma.end())
+    auto i = sigma.find(x);
+    if (i != sigma.end())
     {
-      // If we encounter a function application f(p), replace it by f
-      if (data::is_application(x1))
-      {
-        const auto& x1_ = atermpp::down_cast<data::application>(x1);
-        if (x1_.size() == 1 && x1_[0] == p)
-        {
-          x1 = replace_function_call(x1_);
-        }
-      }
-      return x1;
+      return i->second;
     }
-    return i->second;
+
+    data::application x1 = super::apply(x);
+
+    // Replace f(p) by f(parameters)
+    if (x1.size() == 1 && x1[0].sort() == psort)
+    {
+      return data::application(x1.head(), parameters);
+    }
+    return x1;
   }
 
   process_equation apply(const process_equation& x)
@@ -102,7 +125,7 @@ struct expand_structured_sorts_builder: public data_expression_builder<expand_st
   {
     // TODO: generalize this code
     auto identifier = process_identifier_map.at(x.identifier());
-    auto actual_parameters = super::apply(x.actual_parameters());
+    auto actual_parameters = x.actual_parameters();
 
     if (actual_parameters.size() != 1)
     {
@@ -110,7 +133,7 @@ struct expand_structured_sorts_builder: public data_expression_builder<expand_st
     }
     const auto& arg = atermpp::down_cast<data::application>(actual_parameters.front());
     actual_parameters = data::data_expression_list(arg.begin(), arg.end());
-
+    actual_parameters = super::apply(actual_parameters);
     return process_instance(identifier, actual_parameters);
   }
 
@@ -128,7 +151,7 @@ struct expand_structured_sorts_builder: public data_expression_builder<expand_st
     }
     const data::assignment& a = x.assignments().front();
     const auto& rhs = atermpp::down_cast<data::application>(a.rhs());
-    auto actual_parameters = data::data_expression_list(rhs.begin(), rhs.end());
+    data::data_expression_list actual_parameters(rhs.begin(), rhs.end());
     actual_parameters = super::apply(actual_parameters);
     return process_instance(identifier, actual_parameters);
   }
@@ -267,23 +290,35 @@ void expand_structured_sorts(process_specification& procspec)
     throw mcrl2::runtime_error("expand_structured_sorts: unsupported case 1!");
   }
 
-  auto p = *structured_sort_parameters.begin();
-  std::map<data::data_expression, data::data_expression> sigma = detail::make_structured_sort_substitution(procspec, p.first, p.second);
+  data::variable p;
+  data::structured_sort p_structured_sort;
+  std::tie(p, p_structured_sort) = *structured_sort_parameters.begin();
+
+  // find the basic sort corresponding to p_structured_sort
+  data::variable p_normalized = data::normalize_sorts(p, procspec.data());
+  const data::basic_sort& p_basic_sort = atermpp::down_cast<data::basic_sort>(p_normalized.sort());
+
+  std::map<data::data_expression, data::data_expression> sigma = detail::make_structured_sort_substitution(procspec, p, p_structured_sort);
 
   data::variable_list parameters;
   data::sort_expression_list parameter_sorts;
-  std::tie(parameters, parameter_sorts) = detail::structured_sort_variables(procspec, p.first, p.second);
+  std::tie(parameters, parameter_sorts) = detail::structured_sort_variables(procspec, p, p_structured_sort);
 
-  detail::expand_structured_sorts_builder f(process_identifier_map, sigma, p.first, parameters, parameter_sorts);
+  detail::expand_structured_sorts_builder f(process_identifier_map, sigma, p_basic_sort, parameters, parameter_sorts);
   f.update(procspec);
 
   // N.B. The data specification needs to be handled separately, because its irregular interface doesn't play
   // well with the traverser framework.
   const data::data_specification& dataspec = procspec.data();
   data::basic_sort_list sorts(dataspec.user_defined_sorts().begin(), dataspec.user_defined_sorts().begin());
-  data::alias_list aliases(dataspec.user_defined_aliases().begin(), dataspec.user_defined_aliases().end());
+  auto a = dataspec.user_defined_aliases();
+  a.erase(std::remove_if(std::begin(a), std::end(a), [&](const data::alias& x) { return x.name() == p_basic_sort; }), std::end(a));
+  data::alias_list aliases(a.begin(), a.end());
+  aliases = f.apply(aliases);
   data::function_symbol_list constructors(dataspec.user_defined_constructors().begin(), dataspec.user_defined_constructors().end());
+  constructors = f.apply(constructors);
   data::function_symbol_list mappings(dataspec.user_defined_mappings().begin(), dataspec.user_defined_mappings().end());
+  mappings = f.apply(mappings);
   data::data_equation_list equations(dataspec.user_defined_equations().begin(), dataspec.user_defined_equations().end());
   equations = f.apply(equations);
   procspec.data() = data::data_specification(sorts, aliases, constructors, mappings, equations);
