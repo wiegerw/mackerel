@@ -48,7 +48,6 @@ class lts_generation_options
     bool detect_deadlock = false;
     bool detect_nondeterminism = false;
     bool use_enumeration_caching = false;
-    bool no_tau = false;
 
     /// \brief Constructor
     lts_generation_options() = default;

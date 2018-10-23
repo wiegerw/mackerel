@@ -365,39 +365,11 @@ class lps2lts_algorithm
       assert(transitions.empty());
       try
       {
-        if (m_options.no_tau)
+        enumeration_queue.clear();
+        auto end = m_generator->end();
+        for (auto i = m_generator->begin(state, &enumeration_queue); i != end; ++i)
         {
-          std::deque<lps::state> todo{ state };
-          while (!todo.empty())
-          {
-            lps::state s = todo.front();
-            todo.pop_front();
-            enumeration_queue.clear();
-            auto end = m_generator->end();
-            for (auto i = m_generator->begin(s, &enumeration_queue); i != end; ++i)
-            {
-              if (i->action.actions().empty())
-              {
-#ifdef MCRL3_PRINT_STATE_CHANGES
-                print_state_change(state, i->target_state);
-#endif
-                todo.push_back(i->target_state);
-              }
-              else
-              {
-                transitions.push_back(*i);
-              }
-            }
-          }
-        }
-        else
-        {
-          enumeration_queue.clear();
-          auto end = m_generator->end();
-          for (auto i = m_generator->begin(state, &enumeration_queue); i != end; ++i)
-          {
-            transitions.push_back(*i);
-          }
+          transitions.push_back(*i);
         }
       }
       catch (mcrl2::runtime_error& e)
@@ -438,14 +410,6 @@ class lps2lts_algorithm
       {
         lps::state state = m_state_numbers.get(current_state);
         generate_transitions(state, transitions, enumeration_queue);
-
-//        while (m_options.no_tau && transitions.size() == 1 && transitions.front().action.actions().empty())
-//        {
-//          // TODO: check if the conditions of the no_tau option are met
-//          auto target_state = transitions.front().target_state;
-//          transitions.clear();
-//          generate_transitions(target_state, transitions, enumeration_queue);
-//        }
 
         for (const lps::next_state_generator::transition& t: transitions)
         {
