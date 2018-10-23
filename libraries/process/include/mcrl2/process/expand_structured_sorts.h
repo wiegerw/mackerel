@@ -322,6 +322,7 @@ void expand_structured_sorts(process_specification& procspec)
   data::data_equation_list equations(dataspec.user_defined_equations().begin(), dataspec.user_defined_equations().end());
   equations = f.apply(equations);
   procspec.data() = data::data_specification(sorts, aliases, constructors, mappings, equations);
+  process::normalize_sorts(procspec, procspec.data()); // TODO: find out if this is necessary.
 }
 
 } // namespace process
