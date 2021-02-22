@@ -198,14 +198,38 @@ struct remove_sequential_composition_builder: public process_expression_builder<
   std::vector<process_equation> additional_equations;
   data::variable_list process_parameters;
 
+  std::vector<data::variable> sum_variables; // keep track of the sum variables that are in scope
+
+  process_expression apply(const sum& x)
+  {
+    for (const auto& v: x.variables())
+    {
+      sum_variables.push_back(v);
+    }
+    process_expression result = super::apply(x);
+    for (const auto& v: x.variables())
+    {
+      sum_variables.pop_back();
+    }
+    return result;
+  }
+
   process_expression apply(const seq& x)
   {
     auto left = apply(x.left());
     auto right = apply(x.right());
     if (is_action(left) && (is_choice(right) || is_if_then(right)))
     {
-      process_identifier Q(generator("Q"), process_parameters);
-      additional_equations.emplace_back(Q, process_parameters, right);
+      data::variable_list Q_parameters = process_parameters;
+      for (const auto& v: sum_variables)
+      {
+        if (std::find(Q_parameters.begin(), Q_parameters.end(), v) == Q_parameters.end())
+        {
+          Q_parameters.push_front(v);
+        }
+      }
+      process_identifier Q(generator("Q"), Q_parameters);
+      additional_equations.emplace_back(Q, Q_parameters, right);
       return seq(left, process_instance_assignment(Q, {}));
     }
     return seq(left, right);
@@ -558,15 +582,15 @@ lps::specification linearize(process_specification procspec, bool expand_structu
   convert_process_instances(procspec);
   timer.finish("convert process instances");
 
-  mCRL2log(log::verbose) << "Balance process parameters" << std::endl;
-  timer.start("balance process parameters");
-  balance_process_parameters(procspec);
-  timer.finish("balance process parameters");
-
   mCRL2log(log::verbose) << "Remove sequential composition" << std::endl;
   timer.start("remove sequential composition");
   remove_sequential_composition(procspec);
   timer.finish("remove sequential composition");
+
+  mCRL2log(log::verbose) << "Balance process parameters" << std::endl;
+  timer.start("balance process parameters");
+  balance_process_parameters(procspec);
+  timer.finish("balance process parameters");
 
   mCRL2log(log::verbose) << "Make process guarded" << std::endl;
   timer.start("make process guarded");
