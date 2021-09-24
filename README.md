@@ -1,5 +1,8 @@
 # mackerel
 
+**N.B. This library is archived, since it was developed for an industrial project that
+I am no longer involved in.**
+
 The mackerel library is derived from the [mCRL2](http://mcrl2.org) toolset. It is a test bed for
 language extensions and alternative implementations of existing algorithms.
 
